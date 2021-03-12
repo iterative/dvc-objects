@@ -3,7 +3,7 @@ from operator import itemgetter
 import pytest
 
 from dvc.hash_info import HashInfo
-from dvc_objects import HashFile
+from dvc_objects.file import HashFile
 from dvc_objects.tree import Tree, _merge
 
 
