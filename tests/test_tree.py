@@ -2,9 +2,9 @@ from operator import itemgetter
 
 import pytest
 
-from dvc.data.meta import Meta
 from dvc.data.tree import Tree, _merge
-from dvc.hash_info import HashInfo
+from dvc_objects.hash_info import HashInfo
+from dvc_objects.meta import Meta
 
 
 @pytest.mark.parametrize(
