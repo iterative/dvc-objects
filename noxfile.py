@@ -1,6 +1,7 @@
 """Automation using nox."""
 import glob
 import os
+import sys
 
 import nox
 
@@ -35,6 +36,9 @@ def lint(session: nox.Session) -> None:
 @nox.session
 def safety(session: nox.Session) -> None:
     """Scan dependencies for insecure packages."""
+    if sys.version_info <= (3, 8):
+        return
+
     session.install(".[dev]")
     session.install("safety")
     session.run("safety", "check", "--full-report")
