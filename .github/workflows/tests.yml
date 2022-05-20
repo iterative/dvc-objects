@@ -38,6 +38,12 @@ jobs:
         pip --version
         nox --version
 
+    - name: Cache .nox
+      uses: actions/cache@v23
+      with:
+        path: .nox
+        key: ${{ runner.os }}-${{ hashFiles('noxfile.py') }}-${{ hashFiles('setup.cfg') }}-nox
+
     - name: Lint code and check dependencies
       run: nox -s lint safety
 
