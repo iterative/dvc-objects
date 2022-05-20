@@ -39,7 +39,7 @@ jobs:
         nox --version
 
     - name: Cache .nox
-      uses: actions/cache@v23
+      uses: actions/cache@v3
       with:
         path: .nox
         key: ${{ runner.os }}-${{ hashFiles('noxfile.py') }}-${{ hashFiles('setup.cfg') }}-nox
