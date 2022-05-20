@@ -2,7 +2,7 @@ default_language_version:
   python: python3
 repos:
   - repo: https://github.com/psf/black
-    rev: 21.11b1
+    rev: 22.3.0
     hooks:
       - id: black
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -24,6 +24,9 @@ repos:
     rev: v2.1.0
     hooks:
       - id: codespell
+        args:
+        - --ignore-words-list
+        - fo
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.31.0
     hooks:
