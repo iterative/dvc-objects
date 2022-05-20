@@ -132,7 +132,7 @@ def makedirs(path, exist_ok: bool = False, mode: int = None) -> None:
     try:
         os.chmod(path, mode)
     except OSError:
-        logger.trace(  # type: ignore[attr-defined]
+        logger.debug(  # type: ignore[attr-defined]
             "failed to chmod '%o' '%s'", mode, path, exc_info=True
         )
 
@@ -176,12 +176,6 @@ def copyfile(
 
     if callback:
         callback.absolute_update(total)
-
-
-def walk_files(directory: "AnyFSPath") -> Iterator["AnyFSPath"]:
-    for root, _, files in os.walk(directory):
-        for f in files:
-            yield os.path.join(root, f)
 
 
 def tmp_fname(fname: "AnyFSPath" = "") -> "AnyFSPath":

@@ -125,11 +125,7 @@ def reflink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
 
 
 def inode(path: "AnyFSPath") -> int:
-    ino = os.lstat(path).st_ino
-    logger.trace(  # type: ignore[attr-defined]
-        "Path '%s' inode '%d'", path, ino
-    )
-    return ino
+    return os.lstat(path).st_ino
 
 
 def is_symlink(path: "AnyFSPath") -> bool:
