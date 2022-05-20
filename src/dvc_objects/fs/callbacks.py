@@ -92,7 +92,7 @@ class Callback(fsspec.Callback):
     ) -> "Callback":
         return callback or TqdmCallback(**tqdm_kwargs)
 
-    def branch(
+    def branch(  # pylint: disable=arguments-differ
         self,
         path_1: str,
         path_2: str,
