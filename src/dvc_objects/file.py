@@ -71,13 +71,6 @@ class HashFile:
             self.fs_path, self.fs, self.hash_info.name, odb.state
         )
 
-        logger.trace(
-            "cache '%s' expected '%s' actual '%s'",
-            self.fs_path,
-            self.hash_info,
-            actual,
-        )
-
         assert actual.name == self.hash_info.name
         if actual.value.split(".")[0] != self.hash_info.value.split(".")[0]:
             raise ObjectFormatError(f"{self} is corrupted")

@@ -76,7 +76,6 @@ disable = [
 ]
 
 [tool.pylint.typecheck]
-generated-members = ["logging.TRACE", "logger.trace"]
 ignored-modules = ["azure"]
 signature-mutators = ["funcy.decorators.decorator"]
 

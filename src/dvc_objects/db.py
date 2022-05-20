@@ -188,10 +188,6 @@ class ObjectDB:
 
         obj = self.get(hash_info)
         if self.is_protected(obj.fs_path):
-            logger.trace(  # type: ignore[attr-defined]
-                "Assuming '%s' is unchanged since it is read-only",
-                obj.fs_path,
-            )
             return
 
         try:
