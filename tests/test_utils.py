@@ -8,12 +8,12 @@ def test_mtime_and_size(tmp_path):
     directory = tmp_path / "dir"
     directory.mkdir(parents=True)
     dir_file = directory / "file"
-    dir_file.write_text("dir_file")
+    dir_file.write_text("dir_file", encoding="utf8")
 
     sub = directory / "sub"
     sub.mkdir(parents=True)
     subfile = sub / "file"
-    subfile.write_text("sub_file")
+    subfile.write_text("sub_file", encoding="utf8")
 
     fs = LocalFileSystem(url=tmp_path)
     file_time, file_size = get_mtime_and_size(dir_file, fs)
@@ -35,7 +35,7 @@ def test_path_object_and_str_are_valid_types_get_mtime_and_size(tmp_path):
     directory.mkdir()
     (directory / "file").write_text("dir_file_content")
     file = directory / "file"
-    file.write_text("file_content")
+    file.write_text("file_content", encoding="utf8")
 
     fs = LocalFileSystem(url=tmp_path)
 

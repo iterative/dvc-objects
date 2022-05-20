@@ -24,7 +24,7 @@ def test_tmp_fname():
 
 def test_move(tmp_path):
     src = tmp_path / "foo"
-    src.write_text("foo content")
+    src.write_text("foo content", encoding="utf8")
 
     dest = tmp_path / "some" / "directory"
     dest.mkdir(parents=True)
@@ -35,7 +35,7 @@ def test_move(tmp_path):
 
 def test_copyfile(tmp_path):
     src = tmp_path / "foo"
-    src.write_text("foo content")
+    src.write_text("foo content", encoding="utf8")
     dest = tmp_path / "bar"
 
     utils.copyfile(fspath(src), fspath(dest))
@@ -44,7 +44,7 @@ def test_copyfile(tmp_path):
 
 def test_copyfile_existing_dir(tmp_path):
     src = tmp_path / "foo"
-    src.write_text("foo content")
+    src.write_text("foo content", encoding="utf8")
     dest = tmp_path / "dir"
     dest.mkdir()
 

@@ -10,7 +10,7 @@ from dvc_objects.fs.implementations.local import LocalFileSystem
 )
 def test_local_fs_open(tmp_path, path, contents):
     file = tmp_path / path
-    file.write_text(contents)
+    file.write_text(contents, encoding="utf8")
     fs = LocalFileSystem()
 
     with fs.open(fspath(file), encoding="utf-8") as fobj:
@@ -18,8 +18,8 @@ def test_local_fs_open(tmp_path, path, contents):
 
 
 def test_local_fs_exists(tmp_path):
-    (tmp_path / "file").write_text("file")
-    (tmp_path / "тест").write_text("проверка")
+    (tmp_path / "file").write_text("file", encoding="utf8")
+    (tmp_path / "тест").write_text("проверка", encoding="utf8")
 
     fs = LocalFileSystem()
     assert fs.exists(fspath(tmp_path / "file"))
@@ -28,7 +28,7 @@ def test_local_fs_exists(tmp_path):
 
 
 def test_local_fs_isdir(tmp_path):
-    (tmp_path / "file").write_text("file")
+    (tmp_path / "file").write_text("file", encoding="utf8")
     (tmp_path / "data_dir").mkdir()
 
     fs = LocalFileSystem()
@@ -39,7 +39,7 @@ def test_local_fs_isdir(tmp_path):
 
 
 def test_local_fs_isfile(tmp_path):
-    (tmp_path / "file").write_text("file")
+    (tmp_path / "file").write_text("file", encoding="utf8")
     (tmp_path / "data_dir").mkdir()
 
     fs = LocalFileSystem()
@@ -66,10 +66,12 @@ def test_walk(tmp_path):
             "shutil.copyfile(sys.argv[1], sys.argv[2])",
         ),
     ]:
-        (tmp_path / file).write_text(contents)
+        (tmp_path / file).write_text(contents, encoding="utf8")
     (tmp_path / "data" / "sub").mkdir(parents=True)
-    (tmp_path / "data" / "file").write_text("file")
-    (tmp_path / "data" / "sub" / "file").write_text("sub_file")
+    (tmp_path / "data" / "file").write_text("file", encoding="utf8")
+    (tmp_path / "data" / "sub" / "file").write_text(
+        "sub_file", encoding="utf8"
+    )
 
     fs = LocalFileSystem()
     walk_results = fs.walk(fspath(tmp_path))

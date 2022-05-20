@@ -6,7 +6,7 @@ from dvc_objects.hash import file_md5
 
 def test_file_md5(tmp_path):
     foo = tmp_path / "foo"
-    foo.write_text("foo content")
+    foo.write_text("foo content", encoding="utf8")
 
     fs = LocalFileSystem()
     assert file_md5(fspath(foo), fs) == file_md5(fspath(foo), fs)
