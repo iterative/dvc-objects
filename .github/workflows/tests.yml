@@ -51,7 +51,7 @@ jobs:
         key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('.pre-commit-config.yaml') }}-precommit
 
     - name: Load mypy cache
-      uses: actions/cache@v23
+      uses: actions/cache@v3
       with:
         path: .mypy_cache
         key: ${{ runner.os }}-${{ matrix.pyv }}-mypy
