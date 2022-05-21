@@ -96,6 +96,7 @@ def _reflink_linux(src: "AnyFSPath", dst: "AnyFSPath") -> None:
 
     FICLONE = 0x40049409
 
+    assert sys.platform != "win32"
     try:
         with open(src, "rb") as s, open(dst, "wb+") as d:
             fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
