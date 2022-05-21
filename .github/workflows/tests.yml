@@ -42,7 +42,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .nox
-        key: ${{ runner.os }}-${{ hashFiles('noxfile.py') }}-${{ hashFiles('setup.cfg') }}-nox
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}-nox
+
+    - name: cache pre-commit hook
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('.pre-commit-config.yaml') }}-precommit
 
     - name: Lint code and check dependencies
       run: nox -s lint safety
