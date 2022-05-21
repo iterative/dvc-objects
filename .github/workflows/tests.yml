@@ -21,20 +21,40 @@ jobs:
 
     steps:
     - name: Check out the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
     - name: Set up Python ${{ matrix.pyv }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.pyv }}
+        cache: pip
+        cache-dependency-path: setup.cfg
 
     - name: Upgrade pip and nox
       run: |
         pip install --upgrade pip nox
         pip --version
         nox --version
+
+    - name: Cache .nox
+      uses: actions/cache@v3
+      with:
+        path: .nox
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}-nox
+
+    - name: cache pre-commit hook
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pre-commit
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('.pre-commit-config.yaml') }}-precommit
+
+    - name: Load mypy cache
+      uses: actions/cache@v3
+      with:
+        path: .mypy_cache
+        key: ${{ runner.os }}-${{ matrix.pyv }}-mypy
 
     - name: Lint code and check dependencies
       run: nox -s lint safety
