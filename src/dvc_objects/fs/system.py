@@ -96,8 +96,8 @@ def _reflink_linux(src: "AnyFSPath", dst: "AnyFSPath") -> None:
 
     FICLONE = 0x40049409
 
-    if sys.platform != "win32":
-        assert False
+    if sys.platform != "linux":
+        raise AssertionError
 
     try:
         with open(src, "rb") as s, open(dst, "wb+") as d:
