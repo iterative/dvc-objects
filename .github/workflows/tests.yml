@@ -50,6 +50,12 @@ jobs:
         path: ~/.cache/pre-commit
         key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('.pre-commit-config.yaml') }}-precommit
 
+    - name: Load mypy cache
+      uses: actions/cache@v23
+      with:
+        path: .mypy_cache
+        key: ${{ runner.os }}-${{ matrix.pyv }}-mypy
+
     - name: Lint code and check dependencies
       run: nox -s lint safety
 
