@@ -98,14 +98,14 @@ def _reflink_linux(src: "AnyFSPath", dst: "AnyFSPath") -> None:
 
     if sys.platform != "linux":
         raise AssertionError
-
-    try:
-        with open(src, "rb") as s, open(dst, "wb+") as d:
-            fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
-    except OSError:
-        with suppress(OSError):
-            os.unlink(dst)
-        raise
+    else:
+        try:
+            with open(src, "rb") as s, open(dst, "wb+") as d:
+                fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
+        except OSError:
+            with suppress(OSError):
+                os.unlink(dst)
+            raise
 
 
 def reflink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
