@@ -12,19 +12,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-if os.name == "nt" and sys.version_info < (3, 8):
-    # NOTE: using backports for `os.path.realpath`
-    # See https://bugs.python.org/issue9949 for more info.
-    # pylint: disable=import-error, no-name-in-module
-    from jaraco.windows.filesystem.backports import realpath as _realpath
-
-    def realpath(path):
-        return _realpath(os.fspath(path))
-
-else:
-    realpath = os.path.realpath
-
-
 umask = os.umask(0)
 os.umask(umask)
 
@@ -38,7 +25,7 @@ def hardlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
     # See https://bugs.python.org/issue41355 for more info.
     st = os.lstat(source)
     if stat.S_ISLNK(st.st_mode):
-        src = realpath(source)
+        src = os.path.realpath(source)
     else:
         src = source
 
