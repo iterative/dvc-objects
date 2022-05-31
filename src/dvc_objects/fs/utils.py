@@ -143,6 +143,7 @@ def copyfile(
     callback: "Callback" = None,
     no_progress_bar: bool = False,
     name: str = None,
+    reflink: bool = False,
 ) -> None:
     """Copy file with progress bar"""
     name = name if name else os.path.basename(dest)
@@ -154,25 +155,28 @@ def copyfile(
     if callback:
         callback.set_size(total)
 
-    try:
-        system.reflink(src, dest)
-    except OSError:
-        from .callbacks import Callback
+    if reflink:
+        try:
+            return system.reflink(src, dest)
+        except OSError:
+            pass
 
-        with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
-            with Callback.as_tqdm_callback(
-                callback,
-                size=total,
-                bytes=True,
-                disable=no_progress_bar,
-                desc=name,
-            ) as cb:
-                wrapped = cb.wrap_attr(fdest, "write")
-                while True:
-                    buf = fsrc.read(LOCAL_CHUNK_SIZE)
-                    if not buf:
-                        break
-                    wrapped.write(buf)
+    from .callbacks import Callback
+
+    with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
+        with Callback.as_tqdm_callback(
+            callback,
+            size=total,
+            bytes=True,
+            disable=no_progress_bar,
+            desc=name,
+        ) as cb:
+            wrapped = cb.wrap_attr(fdest, "write")
+            while True:
+                buf = fsrc.read(LOCAL_CHUNK_SIZE)
+                if not buf:
+                    break
+                wrapped.write(buf)
 
     if callback:
         callback.absolute_update(total)
