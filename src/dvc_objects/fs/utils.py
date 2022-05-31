@@ -8,6 +8,7 @@ from contextlib import contextmanager, suppress
 from typing import TYPE_CHECKING, Iterator
 
 from . import system
+from .fastcopy import copyfile as fast_copyfile
 
 if TYPE_CHECKING:
     from .base import AnyFSPath, FileSystem
@@ -147,13 +148,9 @@ def copyfile(
 ) -> None:
     """Copy file with progress bar"""
     name = name if name else os.path.basename(dest)
-    total = os.stat(src).st_size
 
     if os.path.isdir(dest):
         dest = os.path.join(dest, os.path.basename(src))
-
-    if callback:
-        callback.set_size(total)
 
     if reflink:
         try:
@@ -163,23 +160,13 @@ def copyfile(
 
     from .callbacks import Callback
 
-    with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
-        with Callback.as_tqdm_callback(
-            callback,
-            size=total,
-            bytes=True,
-            disable=no_progress_bar,
-            desc=name,
-        ) as cb:
-            wrapped = cb.wrap_attr(fdest, "write")
-            while True:
-                buf = fsrc.read(LOCAL_CHUNK_SIZE)
-                if not buf:
-                    break
-                wrapped.write(buf)
-
-    if callback:
-        callback.absolute_update(total)
+    with Callback.as_tqdm_callback(
+        callback,
+        bytes=True,
+        disable=no_progress_bar,
+        desc=name,
+    ) as cb:
+        fast_copyfile(src, dest, callback=cb)
 
 
 def tmp_fname(fname: "AnyFSPath" = "") -> "AnyFSPath":
