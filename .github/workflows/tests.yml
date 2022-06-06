@@ -34,7 +34,7 @@ jobs:
 
     - name: Upgrade pip and nox
       run: |
-        pip install --upgrade pip nox
+        python -m pip install --upgrade pip nox
         pip --version
         nox --version
 
@@ -42,7 +42,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .nox
-        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}-nox-2
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}_nox
 
     - name: cache pre-commit hook
       uses: actions/cache@v3
