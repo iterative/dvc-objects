@@ -1,11 +1,16 @@
 import errno
 import os
-import posix
 import sys
 from shutil import _fastcopy_fcopyfile as _fcopyfile  # type: ignore
 from shutil import _fastcopy_sendfile as _sendfile  # type: ignore
 from shutil import _GiveupOnFastCopy  # type: ignore
 from shutil import copyfileobj as _copyfileobj_shutil
+
+try:
+    import posix  # type:ignore
+except ImportError:
+    posix = None  # type: ignore
+
 
 _WINDOWS = os.name == "nt"
 COPY_BUFSIZE = 1024 * 1024 if _WINDOWS else 2**20
@@ -51,7 +56,7 @@ def _copy_file_range(fsrc, fdst):
     offset = 0
     while True:
         try:
-            n_copied = os.copy_file_range(
+            n_copied = os.copy_file_range(  # pylint: disable=no-member
                 infd, outfd, blocksize, offset_dst=offset
             )
         except OSError as err:
@@ -117,10 +122,11 @@ def _copyfileobj(fsrc, fdst, callback=None, length=COPY_BUFSIZE):
 def _copyfile(fsrc, fdst, callback):
     if _HAS_FCOPYFILE:  # macOS
         try:
+            # pylint: disable=protected-access, no-member
             return _fcopyfile(
                 fsrc,
                 fdst,
-                posix._COPYFILE_DATA,  # pylint: disable=protected-access
+                posix._COPYFILE_DATA,
             )
         except _GiveupOnFastCopy:
             pass

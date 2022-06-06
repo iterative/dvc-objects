@@ -1,5 +1,4 @@
 import os
-import posix
 import shutil
 from functools import partial
 from pathlib import Path
@@ -8,6 +7,12 @@ import pytest
 
 from dvc_objects.fs import fastcopy, system
 from dvc_objects.fs.utils import human_readable_to_bytes, remove
+
+try:
+    import posix  # type: ignore
+except ImportError:
+    posix = None  # type: ignore
+
 
 TEST_DIR = Path(__file__).resolve().parents[1] / "copy-test-dir"
 FILE_SIZES = [
@@ -73,7 +78,7 @@ def copyfile_sendfile(src, dst):
 
 def copyfile_fcopyfile(src, dst):
     with open(src, "rb") as fsrc, open(dst, "wb+") as fdst:
-        fastcopy._fcopyfile(fsrc, fdst, posix._COPY_FILE_DATA)
+        fastcopy._fcopyfile(fsrc, fdst, posix._COPYFILE_DATA)
 
 
 COPY_FUNCTIONS = {
@@ -91,7 +96,7 @@ COPY_FUNCTIONS = {
     # "100M": partial(copyfile_length, length=100 * 1024 * 1024),
 }
 
-if fastcopy._HAS_FCOPYFILE:
+if posix and fastcopy._HAS_FCOPYFILE:
     COPY_FUNCTIONS["fcopyfile"] = copyfile_fcopyfile
 
 if fastcopy._USE_CP_COPY_FILE_RANGE:
