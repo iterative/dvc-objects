@@ -23,3 +23,12 @@ class GSFileSystem(ObjectFileSystem):
         from gcsfs import GCSFileSystem
 
         return GCSFileSystem(**self.fs_args)
+
+    @classmethod
+    def _strip_protocol(cls, path: str) -> str:
+        from fsspec.utils import infer_storage_options
+
+        return infer_storage_options(path)["path"]
+
+    def unstrip_protocol(self, path: str) -> str:
+        return "gs://" + path.lstrip("/")
