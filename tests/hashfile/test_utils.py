@@ -1,7 +1,7 @@
 import os
 
 from dvc_objects.fs.implementations.local import LocalFileSystem
-from dvc_objects.utils import get_mtime_and_size
+from dvc_objects.hashfile.utils import get_mtime_and_size
 
 
 def test_mtime_and_size(tmp_path):
