@@ -64,7 +64,8 @@ class HashFile:
         self._check_hash(odb)
 
     def _check_hash(self, odb):
-        from .errors import ObjectFormatError
+        from dvc_objects.errors import ObjectFormatError
+
         from .hash import hash_file
 
         _, actual = hash_file(

@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from dvc_objects.istextfile import istextblock, istextfile
+from dvc_objects.hashfile.istextfile import istextblock, istextfile
 
 pytestmark = pytest.mark.parametrize(
     "block, expected",

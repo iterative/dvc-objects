@@ -3,9 +3,10 @@ import io
 import logging
 from typing import TYPE_CHECKING, Any, BinaryIO, Dict, Optional, Tuple
 
-from .fs.callbacks import DEFAULT_CALLBACK, Callback, TqdmCallback
-from .fs.implementations.local import localfs
-from .fs.utils import is_exec
+from dvc_objects.fs.callbacks import DEFAULT_CALLBACK, Callback, TqdmCallback
+from dvc_objects.fs.implementations.local import localfs
+from dvc_objects.fs.utils import is_exec
+
 from .hash_info import HashInfo
 from .istextfile import DEFAULT_CHUNK_SIZE, istextblock
 from .meta import Meta

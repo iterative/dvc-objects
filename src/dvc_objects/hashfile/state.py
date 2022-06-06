@@ -5,9 +5,10 @@ import os
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .fs import LocalFileSystem
-from .fs.system import inode as get_inode
-from .fs.utils import relpath
+from dvc_objects.fs import LocalFileSystem
+from dvc_objects.fs.system import inode as get_inode
+from dvc_objects.fs.utils import relpath
+
 from .hash_info import HashInfo
 from .utils import get_mtime_and_size
 

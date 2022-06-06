@@ -3,8 +3,8 @@ from os import fspath
 import pytest
 
 from dvc_objects.fs import LocalFileSystem
-from dvc_objects.hash import HashStreamFile, file_md5
-from dvc_objects.istextfile import DEFAULT_CHUNK_SIZE, istextfile
+from dvc_objects.hashfile.hash import HashStreamFile, file_md5
+from dvc_objects.hashfile.istextfile import DEFAULT_CHUNK_SIZE, istextfile
 
 
 def test_hashed_stream_reader(tmp_path):

@@ -6,14 +6,16 @@ from copy import copy
 from functools import partial
 from typing import TYPE_CHECKING, Optional
 
-from .errors import ObjectDBPermissionError, ObjectFormatError
-from .file import HashFile
+from dvc_objects.errors import ObjectDBPermissionError, ObjectFormatError
+
+from .obj import HashFile
 
 if TYPE_CHECKING:
     from typing import Tuple
 
-    from .fs.base import AnyFSPath, FileSystem
-    from .fs.callbacks import Callback
+    from dvc_objects.fs.base import AnyFSPath, FileSystem
+    from dvc_objects.fs.callbacks import Callback
+
     from .hash_info import HashInfo
 
 logger = logging.getLogger(__name__)
@@ -94,8 +96,8 @@ class ObjectDB:
         hardlink: bool = False,
         callback: "Callback" = None,
     ):
-        from .fs import generic
-        from .fs.callbacks import Callback
+        from dvc_objects.fs import generic
+        from dvc_objects.fs.callbacks import Callback
 
         self.makedirs(self.fs.path.parent(to_info))
         return generic.transfer(
@@ -116,7 +118,7 @@ class ObjectDB:
         verify: Optional[bool] = None,
         callback: "Callback" = None,
     ):
-        from .fs.callbacks import Callback
+        from dvc_objects.fs.callbacks import Callback
 
         if self.read_only:
             raise ObjectDBPermissionError("Cannot add to read-only ODB")

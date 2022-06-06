@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from dvc_objects.cache import Cache, DiskError
+from dvc_objects.hashfile.cache import Cache, DiskError
 
 
 def set_value(cache: Cache, key: str, value: Any) -> Any:
