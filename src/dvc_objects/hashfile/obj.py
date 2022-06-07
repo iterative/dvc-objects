@@ -52,6 +52,10 @@ class HashFile:
         )
 
     def check(self, odb: "ObjectDB", check_hash: bool = True):
+        from dvc_objects.errors import ObjectFormatError
+
+        from .hash import hash_file
+
         if not check_hash:
             assert self.fs
             if not self.fs.exists(self.fs_path):
@@ -60,13 +64,6 @@ class HashFile:
                 )
             else:
                 return None
-
-        self._check_hash(odb)
-
-    def _check_hash(self, odb):
-        from dvc_objects.errors import ObjectFormatError
-
-        from .hash import hash_file
 
         _, actual = hash_file(
             self.fs_path, self.fs, self.hash_info.name, odb.state

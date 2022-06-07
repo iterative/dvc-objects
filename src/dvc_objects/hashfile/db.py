@@ -87,28 +87,6 @@ class ObjectDB:
             hash_info,
         )
 
-    def _add_file(
-        self,
-        from_fs: "FileSystem",
-        from_info: "AnyFSPath",
-        to_info: "AnyFSPath",
-        _hash_info: "HashInfo",
-        hardlink: bool = False,
-        callback: "Callback" = None,
-    ):
-        from dvc_objects.fs import generic
-        from dvc_objects.fs.callbacks import Callback
-
-        self.makedirs(self.fs.path.parent(to_info))
-        return generic.transfer(
-            from_fs,
-            from_info,
-            self.fs,
-            to_info,
-            hardlink=hardlink,
-            callback=Callback.as_callback(callback),
-        )
-
     def add(
         self,
         fs_path: "AnyFSPath",
@@ -137,13 +115,17 @@ class ObjectDB:
             desc=fs.path.name(fs_path),
             bytes=True,
         ) as cb:
-            self._add_file(
+            from dvc_objects.fs import generic
+            from dvc_objects.fs.callbacks import Callback
+
+            self.makedirs(self.fs.path.parent(cache_fs_path))
+            generic.transfer(
                 fs,
                 fs_path,
+                self.fs,
                 cache_fs_path,
-                hash_info,
                 hardlink=hardlink,
-                callback=cb,
+                callback=Callback.as_callback(cb),
             )
 
         try:
