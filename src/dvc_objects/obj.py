@@ -7,11 +7,11 @@ if TYPE_CHECKING:
 class Object:
     def __init__(
         self,
-        fs_path: "AnyFSPath",
+        path: "AnyFSPath",
         fs: "FileSystem",
         oid: str,
     ):
-        self.fs_path = fs_path
+        self.path = path
         self.fs = fs
         self.oid = oid
 
@@ -28,7 +28,7 @@ class Object:
         if not isinstance(other, type(self)):
             return False
         return (
-            self.fs_path == other.fs_path
+            self.path == other.path
             and self.fs == other.fs
             and self.oid == other.oid
         )
@@ -37,7 +37,7 @@ class Object:
         return hash(
             (
                 self.oid,
-                self.fs_path,
+                self.path,
                 self.fs.protocol if self.fs else None,
             )
         )

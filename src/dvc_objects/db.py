@@ -30,18 +30,18 @@ def wrap_iter(iterable, callback):
 class ObjectDB:
     def __init__(self, fs: "FileSystem", path: str, **config):
         self.fs = fs
-        self.fs_path = path
+        self.path = path
         self.read_only = config.get("read_only", False)
 
     def __eq__(self, other):
         return (
             self.fs == other.fs
-            and self.fs_path == other.fs_path
+            and self.path == other.path
             and self.read_only == other.read_only
         )
 
     def __hash__(self):
-        return hash((self.fs.protocol, self.fs_path))
+        return hash((self.fs.protocol, self.path))
 
     def exists(self, oid: str):
         return self.fs.exists(self.oid_to_path(oid))
@@ -49,8 +49,8 @@ class ObjectDB:
     def move(self, from_info, to_info):
         self.fs.move(from_info, to_info)
 
-    def makedirs(self, fs_path):
-        self.fs.makedirs(fs_path)
+    def makedirs(self, path):
+        self.fs.makedirs(path)
 
     def get(self, oid: str):
         return Object(
@@ -61,7 +61,7 @@ class ObjectDB:
 
     def add(
         self,
-        fs_path: "AnyFSPath",
+        path: "AnyFSPath",
         fs: "FileSystem",
         oid: str,
         hardlink: bool = False,
@@ -77,28 +77,28 @@ class ObjectDB:
         if self.exists(oid):
             return
 
-        cache_fs_path = self.oid_to_path(oid)
+        cache_path = self.oid_to_path(oid)
         with Callback.as_tqdm_callback(
             callback,
-            desc=fs.path.name(fs_path),
+            desc=fs.path.name(path),
             bytes=True,
         ) as cb:
-            self.makedirs(self.fs.path.parent(cache_fs_path))
+            self.makedirs(self.fs.path.parent(cache_path))
             generic.transfer(
                 fs,
-                fs_path,
+                path,
                 self.fs,
-                cache_fs_path,
+                cache_path,
                 hardlink=hardlink,
                 callback=Callback.as_callback(cb),
             )
 
     def oid_to_path(self, oid):
-        return self.fs.path.join(self.fs_path, oid[0:2], oid[2:])
+        return self.fs.path.join(self.path, oid[0:2], oid[2:])
 
     def _list_paths(self, prefix: str = None):
         prefix = prefix or ""
-        parts: "Tuple[str, ...]" = (self.fs_path,)
+        parts: "Tuple[str, ...]" = (self.path,)
         if prefix:
             parts = *parts, prefix[:2]
         if len(prefix) > 2:
@@ -236,8 +236,8 @@ class ObjectDB:
         """
         logger.debug(f"Querying {len(oids)} oids via object_exists")
         with ThreadPoolExecutor(max_workers=jobs or self.fs.jobs) as executor:
-            fs_paths = map(self.oid_to_path, oids)
-            in_remote = executor.map(self.fs.exists, fs_paths)
+            paths = map(self.oid_to_path, oids)
+            in_remote = executor.map(self.fs.exists, paths)
             yield from itertools.compress(oids, in_remote)
 
     def oids_exist(self, oids, jobs=None, progress=noop):
