@@ -49,7 +49,7 @@ class HashFileDB(ObjectDB):
 
     def add(
         self,
-        fs_path: "AnyFSPath",
+        path: "AnyFSPath",
         fs: "FileSystem",
         oid: str,
         hardlink: bool = False,
@@ -66,31 +66,31 @@ class HashFileDB(ObjectDB):
             except (ObjectFormatError, FileNotFoundError):
                 pass
 
-        super().add(fs_path, fs, oid, hardlink=hardlink, callback=callback)
+        super().add(path, fs, oid, hardlink=hardlink, callback=callback)
 
-        cache_fs_path = self.oid_to_path(oid)
+        cache_path = self.oid_to_path(oid)
         try:
             if verify:
                 self.check(oid, check_hash=True)
-            self.protect(cache_fs_path)
+            self.protect(cache_path)
             self.state.save(
-                cache_fs_path,
+                cache_path,
                 self.fs,
                 HashInfo(name=self.hash_name, value=oid),
             )
         except (ObjectFormatError, FileNotFoundError):
             pass
 
-    def protect(self, fs_path):  # pylint: disable=unused-argument
+    def protect(self, path):  # pylint: disable=unused-argument
         pass
 
-    def is_protected(self, fs_path):  # pylint: disable=unused-argument
+    def is_protected(self, path):  # pylint: disable=unused-argument
         return False
 
-    def unprotect(self, fs_path):  # pylint: disable=unused-argument
+    def unprotect(self, path):  # pylint: disable=unused-argument
         pass
 
-    def set_exec(self, fs_path):  # pylint: disable=unused-argument
+    def set_exec(self, path):  # pylint: disable=unused-argument
         pass
 
     def check(
@@ -114,29 +114,29 @@ class HashFileDB(ObjectDB):
         from .hash import hash_file
 
         obj = self.get(oid)
-        if self.is_protected(obj.fs_path):
+        if self.is_protected(obj.path):
             return
 
         if not check_hash:
             assert obj.fs
-            if not obj.fs.exists(obj.fs_path):
+            if not obj.fs.exists(obj.path):
                 raise FileNotFoundError(
-                    errno.ENOENT, os.strerror(errno.ENOENT), obj.fs_path
+                    errno.ENOENT, os.strerror(errno.ENOENT), obj.path
                 )
             return
 
-        _, actual = hash_file(obj.fs_path, obj.fs, self.hash_name, self.state)
+        _, actual = hash_file(obj.path, obj.fs, self.hash_name, self.state)
 
         assert actual.name == self.hash_name
         assert actual.value
         if actual.value.split(".")[0] != oid.split(".")[0]:
-            logger.debug("corrupted cache file '%s'.", obj.fs_path)
+            logger.debug("corrupted cache file '%s'.", obj.path)
             with suppress(FileNotFoundError):
-                self.fs.remove(obj.fs_path)
+                self.fs.remove(obj.path)
 
             raise ObjectFormatError(f"{obj} is corrupted")
 
         if check_hash:
             # making cache file read-only so we don't need to check it
             # next time
-            self.protect(obj.fs_path)
+            self.protect(obj.path)

@@ -111,12 +111,12 @@ def _adapt_info(info: Dict[str, Any], scheme: str) -> Dict[str, Any]:
 
 
 def _hash_file(
-    fs_path: "AnyFSPath",
+    path: "AnyFSPath",
     fs: "FileSystem",
     name: str,
     callback: "Callback" = DEFAULT_CALLBACK,
 ) -> Tuple["str", Dict[str, Any]]:
-    info = _adapt_info(fs.info(fs_path), fs.protocol)
+    info = _adapt_info(fs.info(path), fs.protocol)
 
     if name in info:
         assert not info[name].endswith(".dir")
@@ -124,10 +124,10 @@ def _hash_file(
 
     if hasattr(fs, name):
         func = getattr(fs, name)
-        return func(fs_path), info
+        return func(path), info
 
     if name == "md5":
-        return file_md5(fs_path, fs, callback=callback), info
+        return file_md5(path, fs, callback=callback), info
     raise NotImplementedError
 
 
@@ -157,24 +157,24 @@ class LargeFileHashingCallback(TqdmCallback):
 
 
 def hash_file(
-    fs_path: "AnyFSPath",
+    path: "AnyFSPath",
     fs: "FileSystem",
     name: str,
     state: "StateBase" = None,
     callback: "Callback" = None,
 ) -> Tuple["Meta", "HashInfo"]:
     if state:
-        meta, hash_info = state.get(fs_path, fs)
+        meta, hash_info = state.get(path, fs)
         if hash_info:
             return meta, hash_info
 
-    cb = callback or LargeFileHashingCallback(desc=fs_path)
+    cb = callback or LargeFileHashingCallback(desc=path)
     with cb:
-        hash_value, info = _hash_file(fs_path, fs, name, callback=cb)
+        hash_value, info = _hash_file(path, fs, name, callback=cb)
     hash_info = HashInfo(name, hash_value)
     if state:
         assert ".dir" not in hash_info.value
-        state.save(fs_path, fs, hash_info)
+        state.save(path, fs, hash_info)
 
     meta = Meta(size=info["size"], isexec=is_exec(info.get("mode", 0)))
     return meta, hash_info
