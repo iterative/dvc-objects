@@ -219,7 +219,7 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
             if self._use_service_account:
                 gauth.ServiceAuth()
             else:
-                gauth.CommandLineAuth()
+                gauth.LocalWebserverAuth()
                 GDriveFileSystem._validate_credentials(gauth, auth_settings)
 
         # Handle AuthenticationError, RefreshError and other auth failures
