@@ -9,6 +9,7 @@ from dvc_objects.db import ObjectDB
 from dvc_objects.errors import ObjectFormatError
 
 from .hash_info import HashInfo
+from .obj import HashFile
 
 if TYPE_CHECKING:
     from dvc_objects.fs.base import AnyFSPath, FileSystem
@@ -46,6 +47,13 @@ class HashFileDB(ObjectDB):
             "tmp_dir": self.tmp_dir,
             "read_only": self.read_only,
         }
+
+    def get(self, oid: str):
+        return HashFile(
+            self.oid_to_path(oid),
+            self.fs,
+            HashInfo(self.hash_name, oid),
+        )
 
     def add(
         self,
