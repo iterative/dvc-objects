@@ -33,3 +33,13 @@ class OSSFileSystem(ObjectFileSystem):
         from ossfs import OSSFileSystem as _OSSFileSystem
 
         return _OSSFileSystem(**self.fs_args)
+
+    @classmethod
+    def _strip_protocol(cls, path: str) -> str:
+        from fsspec.utils import infer_storage_options
+
+        options = infer_storage_options(path)
+        return options["host"] + options["path"]
+
+    def unstrip_protocol(self, path):
+        return "oss://" + path.lstrip("/")
