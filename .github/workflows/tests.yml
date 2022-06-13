@@ -42,7 +42,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .nox
-        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}_nox
+        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}_nox2
 
     - name: cache pre-commit hook
       uses: actions/cache@v3
