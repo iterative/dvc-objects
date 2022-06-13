@@ -67,14 +67,13 @@ files = ["src", "tests"]
 [tool.pylint.message_control]
 enable = ["c-extension-no-member", "no-else-return"]
 disable = [
-    "format", "refactoring", "spelling", "design", "no-self-use",
-    "invalid-name", "misplaced-comparison-constant", "duplicate-code", "fixme",
+    "format", "refactoring", "spelling", "design",
+    "invalid-name", "duplicate-code", "fixme",
     "unused-wildcard-import", "cyclic-import", "wrong-import-order",
     "wrong-import-position", "ungrouped-imports", "multiple-imports",
     "logging-format-interpolation", "logging-fstring-interpolation",
     "missing-function-docstring", "missing-module-docstring",
     "missing-class-docstring", "raise-missing-from", "import-outside-toplevel",
-    "cannot-enumerate-pytest-fixtures",
 ]
 
 [tool.pylint.typecheck]
