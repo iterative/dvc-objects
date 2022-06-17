@@ -43,7 +43,7 @@ class ObjectDB:
     def __hash__(self):
         return hash((self.fs.protocol, self.path))
 
-    def exists(self, oid: str):
+    def exists(self, oid: str) -> bool:
         return self.fs.exists(self.oid_to_path(oid))
 
     def move(self, from_info, to_info):
@@ -52,7 +52,7 @@ class ObjectDB:
     def makedirs(self, path):
         self.fs.makedirs(path)
 
-    def get(self, oid: str):
+    def get(self, oid: str) -> Object:
         return Object(
             self.oid_to_path(oid),
             self.fs,
@@ -93,7 +93,7 @@ class ObjectDB:
                 callback=Callback.as_callback(cb),
             )
 
-    def oid_to_path(self, oid):
+    def oid_to_path(self, oid) -> str:
         return self.fs.path.join(self.path, oid[0:2], oid[2:])
 
     def _list_paths(self, prefix: str = None):
@@ -105,7 +105,7 @@ class ObjectDB:
             parts = *parts, prefix[2:]
         yield from self.fs.find(self.fs.path.join(*parts), prefix=bool(prefix))
 
-    def path_to_oid(self, path):
+    def path_to_oid(self, path) -> str:
         parts = self.fs.path.parts(path)[-2:]
 
         if not (len(parts) == 2 and parts[0] and len(parts[0]) == 2):
