@@ -43,7 +43,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .nox
-        key: ${{ runner.os }}-${{ steps.setup-python.outputs.version }}-${{ hashFiles('noxfile.py') }}-nox
+        key: ${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('noxfile.py') }}-nox
 
     - name: cache pre-commit hook
       uses: actions/cache@v3
