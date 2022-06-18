@@ -27,6 +27,7 @@ jobs:
 
     - name: Set up Python ${{ matrix.pyv }}
       uses: actions/setup-python@v4
+      id: setup-python
       with:
         python-version: ${{ matrix.pyv }}
         cache: pip
@@ -42,7 +43,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .nox
-        key: ${{ runner.os }}-${{ matrix.pyv }}-${{ hashFiles('noxfile.py') }}_nox3
+        key: ${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('noxfile.py') }}-nox
 
     - name: cache pre-commit hook
       uses: actions/cache@v3
