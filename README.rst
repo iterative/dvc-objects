@@ -34,13 +34,21 @@ DVC objects
 Features
 --------
 
-* TODO
+* serverless
+* supports multiple storages (local, s3, gs, gdrive, ssh/sftp, etc)
+* based on fsspec
 
 
 Requirements
 ------------
 
-* TODO
+Storage must support these operations:
+
+* uploading
+* downloading
+* listing
+* copying
+* quasiatomic rename
 
 
 Installation
@@ -56,6 +64,7 @@ You can install *DVC objects* via pip_ from PyPI_:
 Usage
 -----
 
+This is used in https://github.com/iterative/dvc
 
 Contributing
 ------------
