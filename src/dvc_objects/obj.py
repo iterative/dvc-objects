@@ -5,6 +5,8 @@ if TYPE_CHECKING:
 
 
 class Object:
+    __slots__ = ("path", "fs", "oid")
+
     def __init__(
         self,
         path: "AnyFSPath",
