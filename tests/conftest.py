@@ -8,7 +8,7 @@ import requests
 from funcy import silent
 from upath import UPath
 
-from dvc_objects.fs.implementations.local import LocalFileSystem
+from dvc_objects.fs import LocalFileSystem, MemoryFileSystem
 
 
 def wait_until(pred, timeout: float, pause: float = 0.1):
@@ -96,3 +96,14 @@ def tmp_upath(request):
     elif param == "s3":
         return request.getfixturevalue("s3path")
     raise ValueError(f"unknown {param=}")
+
+
+@pytest.fixture(autouse=True)
+def memfs():
+    fs = MemoryFileSystem()
+    store = fs.fs.store
+    assert not store
+    try:
+        yield fs
+    finally:
+        store.clear()

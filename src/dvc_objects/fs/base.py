@@ -81,6 +81,10 @@ class FileSystem:
     def config(self) -> Dict[str, Any]:
         return self._config
 
+    @property
+    def root_marker(self) -> str:
+        return self.fs.root_marker
+
     @cached_property
     def path(self):
         from .path import Path

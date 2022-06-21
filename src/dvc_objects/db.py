@@ -2,7 +2,8 @@ import itertools
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from typing import TYPE_CHECKING
+from io import BytesIO
+from typing import TYPE_CHECKING, BinaryIO, Optional, Union, cast
 
 from .errors import ObjectDBPermissionError
 from .obj import Object
@@ -28,9 +29,9 @@ def wrap_iter(iterable, callback):
 
 
 class ObjectDB:
-    def __init__(self, fs: "FileSystem", path: str, **config):
+    def __init__(self, fs: "FileSystem", path: Optional[str] = None, **config):
         self.fs = fs
-        self.path = path
+        self.path = path if path is not None else fs.root_marker
         self.read_only = config.get("read_only", False)
 
     def __eq__(self, other):
@@ -58,6 +59,19 @@ class ObjectDB:
             self.fs,
             oid,
         )
+
+    def add_bytes(self, oid: str, data: Union[bytes, BinaryIO]) -> None:
+        if isinstance(data, bytes):
+            fobj: "BinaryIO" = BytesIO(data)
+            size: "Optional[int]" = len(data)
+        else:
+            fobj = data
+            size = cast("Optional[int]", getattr(fobj, "size", None))
+
+        path = self.oid_to_path(oid)
+        parent = self.fs.path.parent(path)
+        self.makedirs(parent)
+        self.fs.put_file(fobj, path, size=size)
 
     def add(
         self,
