@@ -29,9 +29,9 @@ def wrap_iter(iterable, callback):
 
 
 class ObjectDB:
-    def __init__(self, fs: "FileSystem", path: Optional[str] = None, **config):
+    def __init__(self, fs: "FileSystem", path: str, **config):
         self.fs = fs
-        self.path = path if path is not None else fs.root_marker
+        self.path = path
         self.read_only = config.get("read_only", False)
 
     def __eq__(self, other):
@@ -63,7 +63,7 @@ class ObjectDB:
     def add_bytes(self, oid: str, data: Union[bytes, BinaryIO]) -> None:
         if isinstance(data, bytes):
             fobj: "BinaryIO" = BytesIO(data)
-            size: "Optional[int]" = len(data)
+            size: Optional[int] = len(data)
         else:
             fobj = data
             size = cast("Optional[int]", getattr(fobj, "size", None))
