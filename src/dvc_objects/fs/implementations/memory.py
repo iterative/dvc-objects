@@ -5,14 +5,15 @@ class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
     protocol = "memory"
     PARAM_CHECKSUM = "md5"
 
-    def __init__(self, global_store=True, **kwargs):
-        from fsspec.implementations.memory import MemoryFileSystem as MemFS
+    def __init__(self, global_store=True, trie_based=False, **kwargs):
+        from ._memory import MemFS, MemFS2
 
         super().__init__(**kwargs)
-        self.fs = fs = MemFS(**self.fs_args)
-        if not global_store:
-            fs.store = {}
-            fs.pseudo_dirs = [""]
+        fs_cls = MemFS2 if trie_based else MemFS
+        self.fs = fs_cls(**self.fs_args)
+        if global_store and not trie_based:
+            self.fs.store = {}
+            self.fs.pseudo_dirs = [""]
 
     def __eq__(self, other):
         return (
