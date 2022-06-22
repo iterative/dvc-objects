@@ -100,10 +100,4 @@ def tmp_upath(request):
 
 @pytest.fixture(autouse=True)
 def memfs():
-    fs = MemoryFileSystem()
-    store = fs.fs.store
-    assert not store
-    try:
-        yield fs
-    finally:
-        store.clear()
+    return MemoryFileSystem(global_store=False)
