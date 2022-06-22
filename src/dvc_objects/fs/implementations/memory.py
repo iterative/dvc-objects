@@ -1,7 +1,3 @@
-import threading
-
-from funcy import cached_property, wrap_prop
-
 from ..base import FileSystem
 
 
@@ -9,16 +5,18 @@ class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
     protocol = "memory"
     PARAM_CHECKSUM = "md5"
 
-    def __eq__(self, other):
-        # NOTE: all fsspec MemoryFileSystem instances are equivalent and use a
-        # single global store
-        return isinstance(other, type(self))
-
-    __hash__ = FileSystem.__hash__
-
-    @wrap_prop(threading.Lock())
-    @cached_property
-    def fs(self):
+    def __init__(self, global_store=True, **kwargs):
         from fsspec.implementations.memory import MemoryFileSystem as MemFS
 
-        return MemFS(**self.fs_args)
+        super().__init__(**kwargs)
+        self.fs = fs = MemFS(**self.fs_args)
+        if not global_store:
+            fs.store = {}
+            fs.pseudo_dirs = [""]
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, type(self)) and self.fs.store is other.fs.store
+        )
+
+    __hash__ = FileSystem.__hash__
