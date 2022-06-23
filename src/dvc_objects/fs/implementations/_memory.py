@@ -20,16 +20,31 @@ class MemFS2(AbstractFileSystem):  # pylint: disable=abstract-method
         super().__init__(*args, **storage_options)
         self.trie = self.store = pygtrie.StringTrie()
 
+    @staticmethod
+    def _info(path, filelike=None, **kwargs):
+        if filelike:
+            return {
+                "name": path,
+                "size": filelike.size
+                if hasattr(filelike, "size")
+                else filelike.getbuffer().nbytes,
+                "type": "file",
+                "created": getattr(filelike, "created", None),
+            }
+        return {"name": path, "size": 0, "type": "directory"}
+
     def ls(self, path, detail=False, **kwargs):
         path = self._strip_protocol(path)
         out = []
 
-        def node_factory(path_conv, parts, children, _filelike=None):
+        def node_factory(path_conv, parts, children, filelike=None):
             node_path = path_conv(parts)
             if path == node_path and children:
                 list(children)
-            else:
-                out.append(node_path)
+                return
+
+            info = self._info(node_path, filelike) if detail else node_path
+            out.append(info)
 
         try:
             self.trie.traverse(node_factory, prefix=path)
@@ -40,28 +55,18 @@ class MemFS2(AbstractFileSystem):  # pylint: disable=abstract-method
                 errno.ENOENT, "No such file", path
             ) from exc
 
-        if not detail:
-            return out
-        return [self.info(p) for p in out]
+        return out
 
     def info(self, path, **kwargs):
         path = self._strip_protocol(path)
         if path in ("", "/") or self.trie.has_subtrie(path):
-            return {
-                "name": path,
-                "size": 0,
-                "type": "directory",
-            }
-
+            return self._info(path, **kwargs)
         if filelike := self.trie.get(path):
-            return {
-                "name": path,
-                "size": filelike.size
-                if hasattr(filelike, "size")
-                else filelike.getbuffer().nbytes,
-                "type": "file",
-                "created": getattr(filelike, "created", None),
-            }
+            return self._info(path, filelike, **kwargs)
+
+        short = self.trie.shortest_prefix(path)
+        if short and short.key != path:
+            raise NotADirectoryError(errno.ENOTDIR, "Not a directory", path)
         raise FileNotFoundError(errno.ENOENT, "No such file", path)
 
     def _rm(self, path):
@@ -83,22 +88,22 @@ class MemFS2(AbstractFileSystem):  # pylint: disable=abstract-method
         self, path, mode="rb", **kwargs
     ):
         path = self._strip_protocol(path)
-        if self.isdir(path):
-            raise IsADirectoryError(errno.EISDIR, "Is a directory", path)
-        short = self.trie.shortest_prefix(path)
-        if short and short.key != path:
-            raise NotADirectoryError(errno.ENOTDIR, "Not a directory", path)
+        try:
+            info = self.info(path)
+            if info["type"] == "directory":
+                raise IsADirectoryError(errno.EISDIR, "Is a directory", path)
+        except FileNotFoundError:
+            if mode in ["rb", "ab", "rb+"]:
+                raise
 
-        if mode in ["rb", "ab", "rb+"]:
-            if filelike := self.trie.get(path):
-                filelike.seek(0, os.SEEK_END if mode == "ab" else os.SEEK_SET)
-                return filelike
-            raise FileNotFoundError(errno.ENOENT, "No such file", path)
+        if mode == "wb":
+            filelike = MemoryFile(self, path)
+            if not self._intrans:
+                filelike.commit()
+            return filelike
 
-        assert mode == "wb"
-        filelike = MemoryFile(self, path)
-        if not self._intrans:
-            filelike.commit()
+        filelike = self.trie[path]
+        filelike.seek(0, os.SEEK_END if mode == "ab" else os.SEEK_SET)
         return filelike
 
     def cp_file(self, path1, path2, **kwargs):
