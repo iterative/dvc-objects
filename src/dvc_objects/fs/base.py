@@ -68,7 +68,7 @@ class FileSystem:
 
     PARAM_CHECKSUM: ClassVar[Optional[str]] = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, fs=None, **kwargs):
         self._check_requires(**kwargs)
 
         self.jobs = kwargs.get("jobs") or self._JOBS
@@ -76,6 +76,8 @@ class FileSystem:
         self._config = kwargs
         self.fs_args = {"skip_instance_cache": True}
         self.fs_args.update(self._prepare_credentials(**kwargs))
+        if fs:
+            self.fs = fs
 
     @property
     def config(self) -> Dict[str, Any]:
@@ -102,7 +104,7 @@ class FileSystem:
         return path
 
     @cached_property
-    def fs(self) -> "AbstractFileSystem":
+    def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
         raise NotImplementedError
 
     @staticmethod
