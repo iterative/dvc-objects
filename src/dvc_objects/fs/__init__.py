@@ -84,8 +84,8 @@ def as_filesystem(
         return fs
 
     protos = (fs.protocol,) if isinstance(fs.protocol, str) else fs.protocol
-    if "file" in protos:
-        protos = ("local", *protos)
+    if "file" in protos or "local" in protos:
+        return LocalFileSystem()
 
     # if we have the class in our registry, instantiate with that.
     for proto in protos:
