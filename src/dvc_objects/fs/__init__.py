@@ -64,7 +64,7 @@ def as_filesystem(
     fs: "AbstractFileSystem",
     checksum: str = "md5",
     object_based: bool = False,
-    **fs_args
+    **fs_args,
 ) -> "FileSystem":
     """
     Provides a way to transform any fsspec-based filesystems into a
@@ -80,15 +80,26 @@ def as_filesystem(
     """
     from .base import FileSystem, ObjectFileSystem
 
+    if isinstance(fs, FileSystem):
+        return fs
+
     protos = (fs.protocol,) if isinstance(fs.protocol, str) else fs.protocol
     if "file" in protos:
         protos = ("local", *protos)
 
+    # if we have the class in our registry, instantiate with that.
+    for proto in protos:
+        if klass := FS_MAP.get(proto):
+            return klass(fs=fs, **fs_args)
+
+    # fallback to unregistered subclasses
     for subclass in FileSystem.__subclasses__():
         for proto in protos:
             if proto == subclass.protocol:
                 return subclass(fs=fs, **fs_args)
 
+    # if that does not exist, create a new subclass and instantiate
+    # from that (the subclass will be reused)
     fs_cls = ObjectFileSystem if object_based else FileSystem
     new_subclass = type(
         fs.__class__.__name__,
