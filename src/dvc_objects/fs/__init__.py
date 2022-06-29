@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from . import generic  # noqa: F401
@@ -15,6 +16,11 @@ from .implementations.ssh import SSHFileSystem
 from .implementations.webdav import WebDAVFileSystem, WebDAVSFileSystem
 from .implementations.webhdfs import WebHDFSFileSystem
 from .scheme import Schemes
+
+if TYPE_CHECKING:
+    from fsspec import AbstractFileSystem
+
+    from .base import FileSystem
 
 FS_MAP = {
     Schemes.AZURE: AzureFileSystem,
@@ -52,3 +58,41 @@ def get_fs_cls(remote_conf, cls=None, scheme=None):
     if not scheme:
         scheme = urlparse(remote_conf["url"]).scheme
     return FS_MAP.get(scheme, LocalFileSystem)
+
+
+def as_filesystem(
+    fs: "AbstractFileSystem",
+    checksum: str = "md5",
+    object_based: bool = False,
+    **fs_args
+) -> "FileSystem":
+    """
+    Provides a way to transform any fsspec-based filesystems into a
+    dvc_objects.base.FileSystem compatible filesystem.
+
+    This iterates through subclasses at first, and then creates an instance.
+    If there's no existing subclass, it'll create a new subclass of
+    the FileSystem and create a new instance out of it (the subclass will be
+    reused, so please give attention to provided args, they should not change
+    for the same filesystem).
+
+    This is only intended for testing, please don't use it anywhere else.
+    """
+    from .base import FileSystem, ObjectFileSystem
+
+    protos = (fs.protocol,) if isinstance(fs.protocol, str) else fs.protocol
+    if "file" in protos:
+        protos = ("local", *protos)
+
+    for subclass in FileSystem.__subclasses__():
+        for proto in protos:
+            if proto == subclass.protocol:
+                return subclass(fs=fs, **fs_args)
+
+    fs_cls = ObjectFileSystem if object_based else FileSystem
+    new_subclass = type(
+        fs.__class__.__name__,
+        (fs_cls,),
+        {"PARAM_CHECKSUM": checksum, "protocol": protos[0]},
+    )
+    return new_subclass(fs=fs, **fs_args)
