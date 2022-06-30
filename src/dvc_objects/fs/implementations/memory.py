@@ -12,7 +12,7 @@ class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
 
             fs_cls = MemFS2 if trie_based else MemFS
             self.fs = fs_cls(**self.fs_args)
-            if global_store and not trie_based:
+            if not global_store and not trie_based:
                 self.fs.store = {}
                 self.fs.pseudo_dirs = [""]
 
