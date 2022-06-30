@@ -61,6 +61,9 @@ class ObjectDB:
         )
 
     def add_bytes(self, oid: str, data: Union[bytes, BinaryIO]) -> None:
+        if self.read_only:
+            raise ObjectDBPermissionError("Cannot add to read-only ODB")
+
         if isinstance(data, bytes):
             fobj: "BinaryIO" = BytesIO(data)
             size: Optional[int] = len(data)
