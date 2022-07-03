@@ -57,7 +57,7 @@ def test_exists(memfs):
 def test_exists_prefix(memfs):
     odb = ObjectDB(memfs, "/odb")
     with pytest.raises(KeyError):
-        assert odb.exists_prefix("12")
+        assert odb.exists_prefix("123")
 
     odb.add_bytes("123456", b"content")
     assert odb.exists_prefix("123") == "123456"
@@ -68,8 +68,8 @@ def test_exists_prefix_ambiguous(memfs):
     odb.add_bytes("123456", b"content")
     odb.add_bytes("123450", b"content")
     with pytest.raises(ValueError) as exc:
-        assert odb.exists_prefix("12")
-    assert exc.value.args == ("12", ["123450", "123456"])
+        assert odb.exists_prefix("123")
+    assert exc.value.args == ("123", ["123450", "123456"])
 
 
 def test_move(memfs):
