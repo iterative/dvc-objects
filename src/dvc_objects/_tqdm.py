@@ -100,6 +100,10 @@ class Tqdm(tqdm):
             total=total,
             **kwargs,
         )
+        
+        if not hasattr(self, "desc"):
+            self.desc = desc or ""
+            
         self.postfix = postfix or {"info": ""}
         if bar_format is None:
             if self.__len__():
