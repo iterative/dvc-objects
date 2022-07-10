@@ -64,7 +64,7 @@ You can install *DVC objects* via pip_ from PyPI_:
 Usage
 -----
 
-This is used in `dvc`_ and `dvc-data`_
+This is used in `dvc`_ and `dvc-data`_.
 
 Contributing
 ------------
