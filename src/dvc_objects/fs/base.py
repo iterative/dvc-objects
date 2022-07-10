@@ -391,13 +391,8 @@ class FileSystem:
                 length=getattr(fdest, "blocksize", None),  # type: ignore
             )
 
-    def walk(
-        self,
-        path: AnyFSPath,
-        topdown: bool = True,
-        **kwargs: Any,
-    ):
-        return self.fs.walk(path, topdown=topdown, **kwargs)
+    def walk(self, path: AnyFSPath, **kwargs: Any):
+        return self.fs.walk(path, **kwargs)
 
     def glob(self, path: AnyFSPath, **kwargs: Any):
         return self.fs.glob(path, **kwargs)
