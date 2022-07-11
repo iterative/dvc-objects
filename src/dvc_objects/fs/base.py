@@ -57,9 +57,9 @@ class FileSystem:
 
     protocol = "base"
     REQUIRES: ClassVar[Dict[str, str]] = {}
-    _JOBS = 4 * cpu_count()
+    _JOBS = int(os.environ.get("DVC_JOBS", 4 * cpu_count()))
 
-    HASH_JOBS = max(1, min(4, cpu_count() // 2))
+    HASH_JOBS = max(1, min(4, int(os.environ.get("DVC_JOBS", cpu_count() // 2))))
     LIST_OBJECT_PAGE_SIZE = 1000
     TRAVERSE_WEIGHT_MULTIPLIER = 5
     TRAVERSE_PREFIX_LEN = 2
