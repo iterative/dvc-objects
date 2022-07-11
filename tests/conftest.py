@@ -1,8 +1,8 @@
 import pytest
 
-from dvc_objects.fs import MemoryFileSystem
+from dvc_objects.fs import as_filesystem
 
 
-@pytest.fixture(autouse=True)
-def memfs():
-    return MemoryFileSystem(global_store=False)
+@pytest.fixture
+def memfs(memory_path):
+    yield as_filesystem(memory_path.fs)

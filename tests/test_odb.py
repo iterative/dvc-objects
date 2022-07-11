@@ -5,15 +5,30 @@ import pytest
 
 from dvc_objects.db import ObjectDB
 from dvc_objects.errors import ObjectDBPermissionError
+from dvc_objects.fs import as_filesystem
 from dvc_objects.fs.base import FileSystem
 
 
-def test_odb(memfs):
-    odb = ObjectDB(memfs, "/odb")
-    assert odb.fs is memfs
-    assert odb.path == "/odb"
+@pytest.fixture(params=["local", "memory"])
+def odb_path(request, tmp_upath_factory):
+    yield tmp_upath_factory.mktemp(request.param)
+
+
+@pytest.fixture
+def fs(odb_path):
+    yield as_filesystem(odb_path.fs)
+
+
+@pytest.fixture
+def odb(odb_path, fs):
+    yield ObjectDB(fs, odb_path.path)
+
+
+def test_odb(odb_path, fs, odb):
+    assert odb.fs is fs
+    assert odb.path == odb_path.path
     assert odb.read_only is False
-    assert odb == odb == ObjectDB(memfs, "/odb")
+    assert odb == ObjectDB(fs, odb_path.path)
     assert hash(odb) == hash(odb)
 
 
@@ -21,41 +36,43 @@ def test_odb(memfs):
     "data, expected",
     [(b"contents", b"contents"), (BytesIO(b"contents"), b"contents")],
 )
-def test_add_bytes(memfs, data, expected):
-    odb = ObjectDB(memfs, memfs.root_marker)
+def test_add_bytes(odb_path, odb, fs, data, expected):
+    if isinstance(data, BytesIO):
+        data.seek(0)
+
     odb.add_bytes("1234", data)
-    assert memfs.cat_file("/12/34") == expected
+    assert (odb_path / "12" / "34").read_bytes() == expected
 
 
-def test_odb_readonly():
-    odb = ObjectDB(FileSystem(), "/odb", read_only=True)
+def test_odb_readonly(fs, odb_path):
+    odb = ObjectDB(fs, odb_path, read_only=True)
     with pytest.raises(ObjectDBPermissionError):
-        odb.add("/odb/foo", odb.fs, "1234")
+        odb.add((odb_path / "foo").path, odb.fs, "1234")
 
     with pytest.raises(ObjectDBPermissionError):
         odb.add_bytes("1234", b"contents")
 
 
-def test_odb_add(memfs):
-    memfs.pipe({"foo": b"foo", "bar": b"bar"})
+def test_odb_add(odb_path, odb, fs):
+    foo = odb_path / "foo"
+    foo.write_bytes(b"foo")
+    bar = odb_path / "bar"
+    bar.write_bytes(b"bar")
 
-    odb = ObjectDB(memfs, "/odb")
-    odb.add("/foo", memfs, "1234")
+    odb.add(foo.path, fs, "1234")
     assert odb.exists("1234")
 
     # should not allow writing to an already existing object
-    odb.add("/bar", memfs, "1234")
-    assert memfs.cat_file("/odb/12/34") == b"foo"
+    odb.add(bar.path, fs, "1234")
+    assert (odb_path / "12" / "34").read_bytes() == b"foo"
 
 
-def test_exists(memfs):
-    odb = ObjectDB(memfs, "/odb")
+def test_exists(odb):
     odb.add_bytes("1234", b"content")
     assert odb.exists("1234")
 
 
-def test_exists_prefix(memfs):
-    odb = ObjectDB(memfs, "/odb")
+def test_exists_prefix(odb):
     with pytest.raises(KeyError):
         assert odb.exists_prefix("123")
 
@@ -63,8 +80,7 @@ def test_exists_prefix(memfs):
     assert odb.exists_prefix("123") == "123456"
 
 
-def test_exists_prefix_ambiguous(memfs):
-    odb = ObjectDB(memfs, "/odb")
+def test_exists_prefix_ambiguous(odb):
     odb.add_bytes("123456", b"content")
     odb.add_bytes("123450", b"content")
     with pytest.raises(ValueError) as exc:
@@ -72,24 +88,23 @@ def test_exists_prefix_ambiguous(memfs):
     assert exc.value.args == ("123", ["123450", "123456"])
 
 
-def test_move(memfs):
-    odb = ObjectDB(memfs, "/")
+def test_move(odb, odb_path):
     odb.add_bytes("1234", b"content")
-    odb.move("/12/34", "/45/67")
-    assert list(memfs.find("")) == ["/45/67"]
+    src = odb_path / "12" / "34"
+    dst = odb_path / "45" / "67"
+    odb.move(src.path, dst.path)
+    assert list(odb.fs.find(odb_path.path)) == [dst.path]
 
 
-def test_makedirs(memfs):
-    odb = ObjectDB(memfs, "/")
+def test_makedirs(odb):
     odb.makedirs("12")
-    assert memfs.isdir("12")
+    assert odb.fs.isdir("12")
 
 
-def test_get(memfs):
-    odb = ObjectDB(memfs, "/odb")
+def test_get(odb, fs, odb_path):
     obj = odb.get("1234")
-    assert obj.fs == memfs
-    assert obj.path == "/odb/12/34"
+    assert obj.fs == fs
+    assert obj.path == (odb_path / "12" / "34").path
     assert obj.oid == "1234"
     assert len(obj) == 1
 
@@ -115,9 +130,8 @@ def test_oid_to_path():
 
 
 @pytest.mark.parametrize("traverse", [True, False])
-def test_listing_oids(memfs, mocker, traverse):
-    mocker.patch.object(memfs, "CAN_TRAVERSE", traverse)
-    odb = ObjectDB(memfs, "/odb")
+def test_listing_oids(odb, mocker, traverse):
+    mocker.patch.object(odb.fs, "CAN_TRAVERSE", traverse)
 
     oids = ["123456", "345678", "567890"]
     assert not list(odb.all())
