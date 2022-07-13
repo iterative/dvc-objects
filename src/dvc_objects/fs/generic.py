@@ -125,8 +125,8 @@ def _test_link(
 ) -> bool:
     try:
         _try_links([link], from_fs, from_file, to_fs, to_file)
-    except OSError:
-        logger.debug("", exc_info=True)
+    except OSError as exc:
+        logger.debug("link type %s is not available (%s)", link, exc)
         return False
 
     try:
