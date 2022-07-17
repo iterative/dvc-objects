@@ -1,5 +1,6 @@
 import logging
 import os
+import tempfile
 import threading
 
 from funcy import cached_property, wrap_prop
@@ -67,7 +68,8 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         self._validate_config()
 
         tmp_dir = config["gdrive_credentials_tmp_dir"]
-        assert tmp_dir
+        if not tmp_dir:
+            tmp_dir = tempfile.mkdtemp("dvc-gdrivefs")
 
         self._gdrive_service_credentials_path = tmp_fname(
             os.path.join(tmp_dir, "")
