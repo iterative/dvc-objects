@@ -155,21 +155,11 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
                     "`gdrive_user_credentials_file` for one or more of them?"
                 )
 
-    def _try_load_env_creds(self):
-        import json
-
-        data = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
-        if not data:
-            return None
-
-        try:
-            return json.loads(data)
-        except ValueError as exc:
-            raise GDriveAuthError(self.GDRIVE_CREDENTIALS_DATA) from exc
-
     @wrap_prop(threading.RLock())
     @cached_property
     def fs(self):
+        import json
+
         from pydrive2.auth import GoogleAuth
         from pydrive2.fs import GDriveFileSystem as _GDriveFileSystem
 
@@ -177,8 +167,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
             **GoogleAuth.DEFAULT_SETTINGS,
             "client_config_backend": "settings",
             "save_credentials": True,
-            "save_credentials_backend": "file",
-            "save_credentials_file": self._gdrive_user_credentials_path,
             "get_refresh_token": True,
             "oauth_scope": [
                 "https://www.googleapis.com/auth/drive",
@@ -186,14 +174,29 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
             ],
         }
 
+        env_creds_json = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
+        try:
+            env_creds_dict = json.loads(env_creds_json)
+        except ValueError as exc:
+            raise GDriveAuthError(self.GDRIVE_CREDENTIALS_DATA) from exc
+
+        if env_creds_json:
+            auth_settings["save_credentials_backend"] = "dictionary"
+            auth_settings["save_credentials_dict"] = {"creds": env_creds_json}
+            auth_settings["save_credentials_key"] = "creds"
+        else:
+            auth_settings["save_credentials_backend"] = "file"
+            auth_settings[
+                "save_credentials_file"
+            ] = self._gdrive_user_credentials_path
+
         if self._use_service_account:
             service_config = {
                 "client_user_email": self._service_account_user_email,
             }
 
-            creds = self._try_load_env_creds()
-            if creds:
-                service_config["client_creds_dict"] = creds
+            if env_creds_dict:
+                service_config["client_creds_dict"] = env_creds_dict
             else:
                 service_config[
                     "client_json_file_path"
