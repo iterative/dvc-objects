@@ -158,8 +158,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
     @wrap_prop(threading.RLock())
     @cached_property
     def fs(self):
-        import json
-
         from pydrive2.auth import GoogleAuth
         from pydrive2.fs import GDriveFileSystem as _GDriveFileSystem
 
@@ -174,15 +172,10 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
             ],
         }
 
-        env_creds_json = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
-        try:
-            env_creds_dict = json.loads(env_creds_json)
-        except ValueError as exc:
-            raise GDriveAuthError(self.GDRIVE_CREDENTIALS_DATA) from exc
-
-        if env_creds_json:
+        env_creds = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
+        if env_creds:
             auth_settings["save_credentials_backend"] = "dictionary"
-            auth_settings["save_credentials_dict"] = {"creds": env_creds_json}
+            auth_settings["save_credentials_dict"] = {"creds": env_creds}
             auth_settings["save_credentials_key"] = "creds"
         else:
             auth_settings["save_credentials_backend"] = "file"
@@ -195,8 +188,8 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
                 "client_user_email": self._service_account_user_email,
             }
 
-            if env_creds_dict:
-                service_config["client_creds_dict"] = env_creds_dict
+            if env_creds:
+                service_config["client_json"] = env_creds
             else:
                 service_config[
                     "client_json_file_path"
