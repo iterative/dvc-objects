@@ -162,8 +162,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         from pydrive2.fs import GDriveFileSystem as _GDriveFileSystem
 
         auth_settings = {
-            **GoogleAuth.DEFAULT_SETTINGS,
-            "client_config_backend": "settings",
             "save_credentials": True,
             "get_refresh_token": True,
             "oauth_scope": [
@@ -195,8 +193,10 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
                     "client_json_file_path"
                 ] = self._service_account_json_file_path
 
+            auth_settings["client_config_backend"] = "service"
             auth_settings["service_config"] = service_config
         else:
+            auth_settings["client_config_backend"] = "settings"
             auth_settings["client_config"] = {
                 "client_id": self._client_id or self.DEFAULT_GDRIVE_CLIENT_ID,
                 "client_secret": self._client_secret
