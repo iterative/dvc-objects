@@ -6,7 +6,6 @@ from funcy import cached_property, wrap_prop
 
 from ..base import FileSystem
 from ..errors import AuthError, ConfigError
-from ..utils import tmp_fname
 
 logger = logging.getLogger(__name__)
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
@@ -66,20 +65,12 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         self._client_secret = config.get("gdrive_client_secret")
         self._validate_config()
 
-        tmp_dir = config["gdrive_credentials_tmp_dir"]
-        assert tmp_dir
-
-        self._gdrive_service_credentials_path = tmp_fname(
-            os.path.join(tmp_dir, "")
-        )
-        self._gdrive_user_credentials_path = (
-            tmp_fname(os.path.join(tmp_dir, ""))
-            if os.getenv(GDriveFileSystem.GDRIVE_CREDENTIALS_DATA)
-            else config.get(
-                "gdrive_user_credentials_file",
-                os.path.join(tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE),
+        self._creds_path = config.get("gdrive_user_credentials_file")
+        tmp_dir = config.get("gdrive_credentials_tmp_dir")
+        if not self._creds_path and tmp_dir:
+            self._creds_path = os.path.join(
+                tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE
             )
-        )
 
     @classmethod
     def _strip_protocol(cls, path):
@@ -126,8 +117,8 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         """
         if os.getenv(GDriveFileSystem.GDRIVE_CREDENTIALS_DATA):
             return GDriveFileSystem.GDRIVE_CREDENTIALS_DATA
-        if os.path.exists(self._gdrive_user_credentials_path):
-            return self._gdrive_user_credentials_path
+        if os.path.exists(self._creds_path):
+            return self._creds_path
         return None
 
     @staticmethod
@@ -159,24 +150,7 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         from pydrive2.auth import GoogleAuth
         from pydrive2.fs import GDriveFileSystem as _GDriveFileSystem
 
-        temporary_save_path = self._gdrive_user_credentials_path
-        is_credentials_temp = os.getenv(
-            GDriveFileSystem.GDRIVE_CREDENTIALS_DATA
-        )
-        if self._use_service_account:
-            temporary_save_path = self._gdrive_service_credentials_path
-
-        if is_credentials_temp:
-            with open(temporary_save_path, "w", encoding="utf-8") as cred_file:
-                cred_file.write(
-                    os.getenv(GDriveFileSystem.GDRIVE_CREDENTIALS_DATA)
-                )
-
         auth_settings = {
-            "client_config_backend": "settings",
-            "save_credentials": True,
-            "save_credentials_backend": "file",
-            "save_credentials_file": self._gdrive_user_credentials_path,
             "get_refresh_token": True,
             "oauth_scope": [
                 "https://www.googleapis.com/auth/drive",
@@ -184,17 +158,33 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
             ],
         }
 
-        if self._use_service_account:
-            auth_settings["service_config"] = {
-                "client_user_email": self._service_account_user_email,
-                "client_json_file_path": self._service_account_json_file_path,
-            }
-            if is_credentials_temp:
-                auth_settings["service_config"][
-                    "client_json_file_path"
-                ] = temporary_save_path
+        env_creds = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
+        if env_creds:
+            auth_settings["save_credentials"] = True
+            auth_settings["save_credentials_backend"] = "dictionary"
+            auth_settings["save_credentials_dict"] = {"creds": env_creds}
+            auth_settings["save_credentials_key"] = "creds"
+        elif self._creds_path:
+            auth_settings["save_credentials"] = True
+            auth_settings["save_credentials_backend"] = "file"
+            auth_settings["save_credentials_file"] = self._creds_path
 
+        if self._use_service_account:
+            service_config = {
+                "client_user_email": self._service_account_user_email,
+            }
+
+            if env_creds:
+                service_config["client_json"] = env_creds
+            else:
+                service_config[
+                    "client_json_file_path"
+                ] = self._service_account_json_file_path
+
+            auth_settings["client_config_backend"] = "service"
+            auth_settings["service_config"] = service_config
         else:
+            auth_settings["client_config_backend"] = "settings"
             auth_settings["client_config"] = {
                 "client_id": self._client_id or self.DEFAULT_GDRIVE_CLIENT_ID,
                 "client_secret": self._client_secret
@@ -205,17 +195,10 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
                 "redirect_uri": "",
             }
 
-        GoogleAuth.DEFAULT_SETTINGS.update(auth_settings)
-
-        # Pass non existent settings path to force DEFAULT_SETTINGS loadings
-        gauth = GoogleAuth(settings_file="")
+        gauth = GoogleAuth(settings=auth_settings)
 
         try:
-            logger.debug(
-                "GDrive remote auth with config '{}'.".format(
-                    GoogleAuth.DEFAULT_SETTINGS
-                )
-            )
+            logger.debug("GDrive remote auth with config '%s'.", auth_settings)
             if self._use_service_account:
                 gauth.ServiceAuth()
             else:
@@ -228,9 +211,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         # expired, flow failed, etc.
         except Exception as exc:
             raise GDriveAuthError(self.credentials_location) from exc
-        finally:
-            if is_credentials_temp:
-                os.remove(temporary_save_path)
 
         return _GDriveFileSystem(
             f"{self._bucket}/{self._path}",

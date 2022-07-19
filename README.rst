@@ -64,7 +64,7 @@ You can install *DVC objects* via pip_ from PyPI_:
 Usage
 -----
 
-This is used in https://github.com/iterative/dvc
+This is used in `dvc`_ and `dvc-data`_.
 
 Contributing
 ------------
@@ -93,3 +93,5 @@ please `file an issue`_ along with a detailed description.
 .. _pip: https://pip.pypa.io/
 .. github-only
 .. _Contributor Guide: CONTRIBUTING.rst
+.. _dvc: https://github.com/iterative/dvc
+.. _dvc-data: https://github.com/iterative/dvc-data

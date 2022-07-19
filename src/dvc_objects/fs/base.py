@@ -68,7 +68,7 @@ class FileSystem:
 
     PARAM_CHECKSUM: ClassVar[Optional[str]] = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, fs=None, **kwargs):
         self._check_requires(**kwargs)
 
         self.jobs = kwargs.get("jobs") or self._JOBS
@@ -76,6 +76,8 @@ class FileSystem:
         self._config = kwargs
         self.fs_args = {"skip_instance_cache": True}
         self.fs_args.update(self._prepare_credentials(**kwargs))
+        if fs:
+            self.fs = fs
 
     @property
     def config(self) -> Dict[str, Any]:
@@ -102,7 +104,7 @@ class FileSystem:
         return path
 
     @cached_property
-    def fs(self) -> "AbstractFileSystem":
+    def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
         raise NotImplementedError
 
     @staticmethod
@@ -389,13 +391,8 @@ class FileSystem:
                 length=getattr(fdest, "blocksize", None),  # type: ignore
             )
 
-    def walk(
-        self,
-        path: AnyFSPath,
-        topdown: bool = True,
-        **kwargs: Any,
-    ):
-        return self.fs.walk(path, topdown=topdown, **kwargs)
+    def walk(self, path: AnyFSPath, **kwargs: Any):
+        return self.fs.walk(path, **kwargs)
 
     def glob(self, path: AnyFSPath, **kwargs: Any):
         return self.fs.glob(path, **kwargs)
@@ -528,32 +525,6 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
     ) -> None:
         return None
 
-    def _isdir(self, path: AnyFSPath) -> bool:
-        # Directory in object storages are interpreted differently
-        # among different fsspec providers, so this logic is a temporary
-        # measure for us to adapt as of now. It checks whether it is a
-        # directory (as in a prefix with contents) or whether it is an empty
-        # file where it's name ends with a forward slash
-
-        entry = self.info(path)
-        return entry["type"] == "directory" or (
-            entry["size"] == 0
-            and entry["type"] == "file"
-            and entry["name"].endswith("/")
-        )
-
-    def isdir(self, path: AnyFSPath) -> bool:
-        try:
-            return self._isdir(path)
-        except FileNotFoundError:
-            return False
-
-    def isfile(self, path: AnyFSPath) -> bool:
-        try:
-            return not self._isdir(path)
-        except FileNotFoundError:
-            return False
-
     def find(self, path: AnyFSPath, prefix: bool = False) -> Iterator[str]:
         if prefix:
             with_prefix = self.path.parent(path)
@@ -561,13 +532,5 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
         else:
             with_prefix = path
             files = self.fs.find(path)
-
-        # When calling find() on a file, it returns the same file in a list.
-        # For object-based storages, the same behavior applies to empty
-        # directories since they are represented as files. This condition
-        # checks whether we should yield an empty list (if it is an empty
-        # directory) or just yield the file itself.
-        if len(files) == 1 and files[0] == with_prefix and self.isdir(path):
-            return None
 
         yield from files

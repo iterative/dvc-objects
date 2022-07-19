@@ -47,6 +47,14 @@ class ObjectDB:
     def exists(self, oid: str) -> bool:
         return self.fs.exists(self.oid_to_path(oid))
 
+    def exists_prefix(self, short_oid: str) -> str:
+        ret = [oid for oid in self.all() if oid.startswith(short_oid)]
+        if not ret:
+            raise KeyError(short_oid)
+        if len(ret) == 1:
+            return ret[0]
+        raise ValueError(short_oid, ret)
+
     def move(self, from_info, to_info):
         self.fs.move(from_info, to_info)
 
@@ -61,6 +69,9 @@ class ObjectDB:
         )
 
     def add_bytes(self, oid: str, data: Union[bytes, BinaryIO]) -> None:
+        if self.read_only:
+            raise ObjectDBPermissionError("Cannot add to read-only ODB")
+
         if isinstance(data, bytes):
             fobj: "BinaryIO" = BytesIO(data)
             size: Optional[int] = len(data)
