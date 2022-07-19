@@ -7,7 +7,6 @@ from funcy import cached_property, wrap_prop
 
 from ..base import FileSystem
 from ..errors import AuthError, ConfigError
-from ..utils import tmp_fname
 
 logger = logging.getLogger(__name__)
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
@@ -71,16 +70,9 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         if not tmp_dir:
             tmp_dir = tempfile.mkdtemp("dvc-gdrivefs")
 
-        self._gdrive_service_credentials_path = tmp_fname(
-            os.path.join(tmp_dir, "")
-        )
-        self._gdrive_user_credentials_path = (
-            tmp_fname(os.path.join(tmp_dir, ""))
-            if os.getenv(GDriveFileSystem.GDRIVE_CREDENTIALS_DATA)
-            else config.get(
-                "gdrive_user_credentials_file",
-                os.path.join(tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE),
-            )
+        self._gdrive_user_credentials_path = config.get(
+            "gdrive_user_credentials_file",
+            os.path.join(tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE),
         )
 
     @classmethod
