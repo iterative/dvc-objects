@@ -1,6 +1,5 @@
 import logging
 import os
-import tempfile
 import threading
 
 from funcy import cached_property, wrap_prop
@@ -66,14 +65,12 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         self._client_secret = config.get("gdrive_client_secret")
         self._validate_config()
 
-        tmp_dir = config["gdrive_credentials_tmp_dir"]
-        if not tmp_dir:
-            tmp_dir = tempfile.mkdtemp("dvc-gdrivefs")
-
-        self._gdrive_user_credentials_path = config.get(
-            "gdrive_user_credentials_file",
-            os.path.join(tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE),
-        )
+        self._creds_path = config.get("gdrive_user_credentials_file")
+        tmp_dir = config.get("gdrive_credentials_tmp_dir")
+        if not self._creds_path and tmp_dir:
+            self._creds_path = os.path.join(
+                tmp_dir, self.DEFAULT_USER_CREDENTIALS_FILE
+            )
 
     @classmethod
     def _strip_protocol(cls, path):
@@ -120,8 +117,8 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         """
         if os.getenv(GDriveFileSystem.GDRIVE_CREDENTIALS_DATA):
             return GDriveFileSystem.GDRIVE_CREDENTIALS_DATA
-        if os.path.exists(self._gdrive_user_credentials_path):
-            return self._gdrive_user_credentials_path
+        if os.path.exists(self._creds_path):
+            return self._creds_path
         return None
 
     @staticmethod
@@ -154,7 +151,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         from pydrive2.fs import GDriveFileSystem as _GDriveFileSystem
 
         auth_settings = {
-            "save_credentials": True,
             "get_refresh_token": True,
             "oauth_scope": [
                 "https://www.googleapis.com/auth/drive",
@@ -164,14 +160,14 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
 
         env_creds = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
         if env_creds:
+            auth_settings["save_credentials"] = True
             auth_settings["save_credentials_backend"] = "dictionary"
             auth_settings["save_credentials_dict"] = {"creds": env_creds}
             auth_settings["save_credentials_key"] = "creds"
-        else:
+        elif self._creds_path:
+            auth_settings["save_credentials"] = True
             auth_settings["save_credentials_backend"] = "file"
-            auth_settings[
-                "save_credentials_file"
-            ] = self._gdrive_user_credentials_path
+            auth_settings["save_credentials_file"] = self._creds_path
 
         if self._use_service_account:
             service_config = {
