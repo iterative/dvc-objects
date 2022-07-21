@@ -73,7 +73,7 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         env_creds = os.getenv(self.GDRIVE_CREDENTIALS_DATA)
 
         # Validate Service Account configuration
-        if use_service_account and not client_json_file_path and env_creds:
+        if use_service_account and not (client_json_file_path or env_creds):
             raise ConfigError(
                 "To use service account, set "
                 "`gdrive_service_account_json_file_path`, and optionally"
