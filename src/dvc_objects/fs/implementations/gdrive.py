@@ -76,7 +76,7 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
         if use_service_account and not (client_json_file_path or env_creds):
             raise ConfigError(
                 "To use service account, set "
-                "`gdrive_service_account_json_file_path`, and optionally"
+                "`gdrive_service_account_json_file_path`, and optionally "
                 "`gdrive_service_account_user_email` in DVC config."
             )
 
