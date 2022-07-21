@@ -5,26 +5,10 @@ import threading
 from funcy import cached_property, wrap_prop
 
 from ..base import FileSystem
-from ..errors import AuthError, ConfigError
+from ..errors import ConfigError
 
 logger = logging.getLogger(__name__)
 FOLDER_MIME_TYPE = "application/vnd.google-apps.folder"
-
-
-class GDriveAuthError(AuthError):
-    def __init__(self, cred_location):
-
-        if cred_location:
-            message = (
-                "GDrive remote auth failed with credentials in '{}'.\n"
-                "Backup first, remove or fix them, and run again.\n"
-                "It should do auth again and refresh the credentials.\n\n"
-                "Details:".format(cred_location)
-            )
-        else:
-            message = "Failed to authenticate GDrive remote"
-
-        super().__init__(message)
 
 
 class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
