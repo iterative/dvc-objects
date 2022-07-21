@@ -19,7 +19,6 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
     TRAVERSE_WEIGHT_MULTIPLIER = 1
 
     GDRIVE_CREDENTIALS_DATA = "GDRIVE_CREDENTIALS_DATA"
-    DEFAULT_USER_CREDENTIALS_FILE = "gdrive-user-credentials.json"
 
     DEFAULT_GDRIVE_CLIENT_ID = "710796635688-iivsgbgsb6uv1fap6635dhvuei09o66c.apps.googleusercontent.com"  # noqa: E501
     DEFAULT_GDRIVE_CLIENT_SECRET = "a1Fz59uTpVNeG_VGuSKDLJXv"
