@@ -73,6 +73,7 @@ class GDriveFileSystem(FileSystem):  # pylint:disable=abstract-method
 
         self._settings = {
             "trash_only": config.get("gdrive_trash_only"),
+            "acknowledge_abuse": config.get("gdrive_acknowledge_abuse"),
             "use_service_account": use_service_account,
             "client_user_email": client_user_email,
             "client_json_file_path": client_json_file_path,
