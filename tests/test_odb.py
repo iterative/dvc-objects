@@ -63,13 +63,23 @@ def test_exists_prefix(memfs):
     assert odb.exists_prefix("123") == "123456"
 
 
-def test_exists_prefix_ambiguous(memfs):
+@pytest.mark.parametrize(
+    "oid, found",
+    [
+        ("", []),
+        ("1", []),
+        ("12", []),
+        ("123", ["123450", "123456"]),
+    ],
+)
+def test_exists_prefix_ambiguous(memfs, oid, found):
     odb = ObjectDB(memfs, "/odb")
     odb.add_bytes("123456", b"content")
     odb.add_bytes("123450", b"content")
+
     with pytest.raises(ValueError) as exc:
-        assert odb.exists_prefix("123")
-    assert exc.value.args == ("123", ["123450", "123456"])
+        assert odb.exists_prefix(oid)
+    assert exc.value.args == (oid, found)
 
 
 def test_move(memfs):
