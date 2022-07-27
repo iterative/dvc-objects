@@ -3,14 +3,12 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from io import BytesIO
-from typing import TYPE_CHECKING, BinaryIO, Optional, Union, cast
+from typing import TYPE_CHECKING, BinaryIO, Optional, Tuple, Union, cast
 
 from .errors import ObjectDBPermissionError
 from .obj import Object
 
 if TYPE_CHECKING:
-    from typing import Tuple
-
     from .fs.base import AnyFSPath, FileSystem
     from .fs.callbacks import Callback
 
@@ -45,10 +43,22 @@ class ObjectDB:
         return hash((self.fs.protocol, self.path))
 
     def exists(self, oid: str) -> bool:
-        return self.fs.exists(self.oid_to_path(oid))
+        return self.fs.isfile(self.oid_to_path(oid))
 
     def exists_prefix(self, short_oid: str) -> str:
-        ret = [oid for oid in self.all() if oid.startswith(short_oid)]
+        path = self.oid_to_path(short_oid)
+        if len(short_oid) <= 2:
+            raise ValueError(short_oid, [])
+
+        if self.exists(path):
+            return short_oid
+
+        prefix, _ = self._oid_parts(short_oid)
+        ret = [
+            oid
+            for oid in self._list_oids(prefix=prefix)
+            if oid.startswith(short_oid)
+        ]
         if not ret:
             raise KeyError(short_oid)
         if len(ret) == 1:
@@ -118,8 +128,11 @@ class ObjectDB:
                 callback=Callback.as_callback(cb),
             )
 
+    def _oid_parts(self, oid: str) -> Tuple[str, str]:
+        return oid[:2], oid[2:]
+
     def oid_to_path(self, oid) -> str:
-        return self.fs.path.join(self.path, oid[0:2], oid[2:])
+        return self.fs.path.join(self.path, *self._oid_parts(oid))
 
     def _list_paths(self, prefix: str = None):
         prefix = prefix or ""
