@@ -138,6 +138,28 @@ def _test_link(
     return True
 
 
+def _find_file(
+    from_fs: "FileSystem",
+    from_path: "",
+    size_limit: Optional[int] = None,
+) -> Optional["AnyFSPath"]:
+    try:
+        for root, _, files in from_fs.walk(from_path):
+            for filename in files:
+                direntpath = from_fs.path.join(root, filename)
+                if size_limit:
+                    try:
+                        filestat = getattr(from_fs, "stat")(direntpath)
+                        if filestat.st_size > size_limit:
+                            continue
+                    except AttributeError:
+                        return None
+                return direntpath
+    except AttributeError:
+        pass
+    return None
+
+
 def test_links(
     links: List["str"],
     from_fs: "FileSystem",
@@ -147,15 +169,20 @@ def test_links(
 ) -> List["AnyFSPath"]:
     from .utils import tmp_fname
 
-    from_file = from_fs.path.join(from_path, tmp_fname())
+    from_file_existed = True
+    from_file = _find_file(from_fs, from_path)
+    if from_file is None or "copy" in links:
+        from_file_existed = False
+        from_file = from_fs.path.join(from_path, tmp_fname())
+        from_fs.makedirs(from_fs.path.parent(from_file))
+        with from_fs.open(from_file, "wb") as fobj:
+            fobj.write(b"test")
+
     to_file = to_fs.path.join(
         to_fs.path.parent(to_path),
         tmp_fname(),
     )
 
-    from_fs.makedirs(from_fs.path.parent(from_file))
-    with from_fs.open(from_file, "wb") as fobj:
-        fobj.write(b"test")
     to_fs.makedirs(to_fs.path.parent(to_file))
 
     ret = []
@@ -167,6 +194,7 @@ def test_links(
             finally:
                 to_fs.remove(to_file)
     finally:
-        from_fs.remove(from_file)
+        if not from_file_existed:
+            from_fs.remove(from_file)
 
     return ret
