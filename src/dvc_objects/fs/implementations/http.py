@@ -155,7 +155,7 @@ class HTTPFileSystem(FileSystem):
         return False
 
     def isfile(self, *args, **kwargs):
-        return self.fs.exists(*args, **kwargs)
+        return self.fs.isfile(*args, **kwargs)
 
     def ls(self, *args, **kwargs):
         raise NotImplementedError
