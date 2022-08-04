@@ -154,9 +154,6 @@ class HTTPFileSystem(FileSystem):
     def isdir(self, *args, **kwargs):
         return False
 
-    def isfile(self, *args, **kwargs):
-        return True
-
     def ls(self, *args, **kwargs):
         raise NotImplementedError
 
