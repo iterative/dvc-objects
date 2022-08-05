@@ -117,7 +117,7 @@ class HTTPFileSystem(FileSystem):
             total=None,
             connect=self.REQUEST_TIMEOUT,
             sock_connect=self.REQUEST_TIMEOUT,
-            sock_read=self.REQUEST_TIMEOUT,
+            sock_read=None,
         )
 
         return RetryClient(**kwargs)
