@@ -2,19 +2,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from . import generic  # noqa: F401
-from .implementations.azure import AzureFileSystem
-from .implementations.gdrive import GDriveFileSystem
-from .implementations.gs import GSFileSystem
-from .implementations.hdfs import HDFSFileSystem
-from .implementations.http import HTTPFileSystem
-from .implementations.https import HTTPSFileSystem
 from .implementations.local import LocalFileSystem
 from .implementations.memory import MemoryFileSystem  # noqa: F401
-from .implementations.oss import OSSFileSystem
-from .implementations.s3 import S3FileSystem
-from .implementations.ssh import SSHFileSystem
-from .implementations.webdav import WebDAVFileSystem, WebDAVSFileSystem
-from .implementations.webhdfs import WebHDFSFileSystem
 from .scheme import Schemes
 
 if TYPE_CHECKING:
@@ -22,21 +11,35 @@ if TYPE_CHECKING:
 
     from .base import FileSystem
 
-FS_MAP = {
-    Schemes.AZURE: AzureFileSystem,
-    Schemes.GDRIVE: GDriveFileSystem,
-    Schemes.GS: GSFileSystem,
-    Schemes.HDFS: HDFSFileSystem,
-    Schemes.WEBHDFS: WebHDFSFileSystem,
-    Schemes.HTTP: HTTPFileSystem,
-    Schemes.HTTPS: HTTPSFileSystem,
-    Schemes.S3: S3FileSystem,
-    Schemes.SSH: SSHFileSystem,
-    Schemes.OSS: OSSFileSystem,
-    Schemes.WEBDAV: WebDAVFileSystem,
-    Schemes.WEBDAVS: WebDAVSFileSystem,
-    # NOTE: LocalFileSystem is the default
-}
+
+def _get_fs_map():
+    from .implementations.azure import AzureFileSystem
+    from .implementations.gdrive import GDriveFileSystem
+    from .implementations.gs import GSFileSystem
+    from .implementations.hdfs import HDFSFileSystem
+    from .implementations.http import HTTPFileSystem
+    from .implementations.https import HTTPSFileSystem
+    from .implementations.oss import OSSFileSystem
+    from .implementations.s3 import S3FileSystem
+    from .implementations.ssh import SSHFileSystem
+    from .implementations.webdav import WebDAVFileSystem, WebDAVSFileSystem
+    from .implementations.webhdfs import WebHDFSFileSystem
+
+    return {
+        Schemes.AZURE: AzureFileSystem,
+        Schemes.GDRIVE: GDriveFileSystem,
+        Schemes.GS: GSFileSystem,
+        Schemes.HDFS: HDFSFileSystem,
+        Schemes.WEBHDFS: WebHDFSFileSystem,
+        Schemes.HTTP: HTTPFileSystem,
+        Schemes.HTTPS: HTTPSFileSystem,
+        Schemes.S3: S3FileSystem,
+        Schemes.SSH: SSHFileSystem,
+        Schemes.OSS: OSSFileSystem,
+        Schemes.WEBDAV: WebDAVFileSystem,
+        Schemes.WEBDAVS: WebDAVSFileSystem,
+        # NOTE: LocalFileSystem is the default
+    }
 
 
 def _import_class(cls: str):
@@ -57,7 +60,7 @@ def get_fs_cls(remote_conf, cls=None, scheme=None):
 
     if not scheme:
         scheme = urlparse(remote_conf["url"]).scheme
-    return FS_MAP.get(scheme, LocalFileSystem)
+    return _get_fs_map().get(scheme, LocalFileSystem)
 
 
 def as_filesystem(
@@ -89,7 +92,7 @@ def as_filesystem(
 
     # if we have the class in our registry, instantiate with that.
     for proto in protos:
-        if klass := FS_MAP.get(proto):
+        if klass := _get_fs_map().get(proto):
             return klass(fs=fs, **fs_args)
 
     # fallback to unregistered subclasses
