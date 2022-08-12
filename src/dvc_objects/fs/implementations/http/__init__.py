@@ -4,9 +4,9 @@ from typing import BinaryIO, Union
 
 from funcy import cached_property, memoize, wrap_with
 
-from ..base import AnyFSPath, FileSystem
-from ..callbacks import DEFAULT_CALLBACK, Callback
-from ..errors import ConfigError
+from ...base import AnyFSPath, FileSystem
+from ...callbacks import DEFAULT_CALLBACK, Callback
+from ...errors import ConfigError
 
 
 @wrap_with(threading.Lock())
@@ -99,7 +99,9 @@ class HTTPFileSystem(FileSystem):
 
     async def get_client(self, **kwargs):
         import aiohttp
-        from aiohttp_retry import ExponentialRetry, RetryClient
+        from aiohttp_retry import ExponentialRetry
+
+        from .retry import ReadOnlyRetryClient
 
         kwargs["retry_options"] = ExponentialRetry(
             attempts=self.SESSION_RETRIES,
@@ -120,7 +122,7 @@ class HTTPFileSystem(FileSystem):
             sock_read=None,
         )
 
-        return RetryClient(**kwargs)
+        return ReadOnlyRetryClient(**kwargs)
 
     @cached_property
     def fs(self):
