@@ -1,3 +1,4 @@
+import dvc_http
 import pytest
 
 from dvc_objects.fs.base import FileSystem
@@ -5,8 +6,6 @@ from dvc_objects.fs.implementations import (
     azure,
     gs,
     hdfs,
-    http,
-    https,
     oss,
     s3,
     ssh,
@@ -29,12 +28,12 @@ def mock_check_requires(mocker):
         (hdfs.HDFSFileSystem, "hdfs://example.com", ""),
         (hdfs.HDFSFileSystem, "hdfs://example.com:8020", ""),
         (
-            http.HTTPFileSystem,
+            dvc_http.HTTPFileSystem,
             "http://example.com/path/to/file",
             "http://example.com/path/to/file",
         ),
         (
-            https.HTTPSFileSystem,
+            dvc_http.HTTPSFileSystem,
             "https://example.com/path/to/file",
             "https://example.com/path/to/file",
         ),

@@ -1,12 +1,18 @@
 import logging
 import threading
+from getpass import getpass
 
-from funcy import cached_property, wrap_prop
+from funcy import cached_property, memoize, wrap_prop, wrap_with
 
 from ..base import FileSystem
-from .http import ask_password
 
 logger = logging.getLogger(__name__)
+
+
+@wrap_with(threading.Lock())
+@memoize
+def ask_password(host, user):
+    return getpass(f"Enter a password for host '{host}' user '{user}':\n")
 
 
 class WebDAVFileSystem(FileSystem):  # pylint:disable=abstract-method
