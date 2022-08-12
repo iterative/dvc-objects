@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .base import FileSystem
 
 
-def _get_fs_map():
+def get_fs_map():
     from .implementations.azure import AzureFileSystem
     from .implementations.gdrive import GDriveFileSystem
     from .implementations.gs import GSFileSystem
@@ -60,7 +60,7 @@ def get_fs_cls(remote_conf, cls=None, scheme=None):
 
     if not scheme:
         scheme = urlparse(remote_conf["url"]).scheme
-    return _get_fs_map().get(scheme, LocalFileSystem)
+    return get_fs_map().get(scheme, LocalFileSystem)
 
 
 def as_filesystem(
@@ -92,7 +92,7 @@ def as_filesystem(
 
     # if we have the class in our registry, instantiate with that.
     for proto in protos:
-        if klass := _get_fs_map().get(proto):
+        if klass := get_fs_map().get(proto):
             return klass(fs=fs, **fs_args)
 
     # fallback to unregistered subclasses
