@@ -50,8 +50,8 @@ def _import_class(cls: str):
 
 
 class Registry(Mapping):
-    def __init__(self, registry):
-        self._registry = registry
+    def __init__(self, reg):
+        self._registry = reg
 
     def __getitem__(self, key):
         entry = self._registry.get(key)
