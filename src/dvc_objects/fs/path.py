@@ -1,5 +1,6 @@
 import ntpath
 import posixpath
+from urllib.parse import urlsplit, urlunsplit
 
 
 class Path:
@@ -33,7 +34,12 @@ class Path:
         return self.flavour.splitext(path)
 
     def normpath(self, path):
-        return self.flavour.normpath(path)
+        if self.flavour == ntpath:
+            return self.flavour.normpath(path)
+
+        parts = list(urlsplit(path))
+        parts[2] = self.flavour.normpath(parts[2])
+        return urlunsplit(parts)
 
     def isabs(self, path):
         return self.flavour.isabs(path)
