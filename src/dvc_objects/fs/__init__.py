@@ -14,12 +14,22 @@ if TYPE_CHECKING:
 
 
 known_implementations = {
-    Schemes.LOCAL: {"class": "dvc_objects.fs.implementations.local.LocalFileSystem"},
-    Schemes.MEMORY: {"class": "dvc_objects.fs.implementations.memory.MemoryFileSystem"},
-    Schemes.AZURE: {"class": "dvc_objects.fs.implementations.azure.AzureFileSystem"},
-    Schemes.GDRIVE: {"class": "dvc_objects.fs.implementations.gdrive.GDriveFileSystem"},
+    Schemes.LOCAL: {
+        "class": "dvc_objects.fs.implementations.local.LocalFileSystem"
+    },
+    Schemes.MEMORY: {
+        "class": "dvc_objects.fs.implementations.memory.MemoryFileSystem"
+    },
+    Schemes.AZURE: {
+        "class": "dvc_objects.fs.implementations.azure.AzureFileSystem"
+    },
+    Schemes.GDRIVE: {
+        "class": "dvc_objects.fs.implementations.gdrive.GDriveFileSystem"
+    },
     Schemes.GS: {"class": "dvc_objects.fs.implementations.gs.GSFileSystem"},
-    Schemes.HDFS: {"class": "dvc_objects.fs.implementations.hdfs.HDFSFileSystem"},
+    Schemes.HDFS: {
+        "class": "dvc_objects.fs.implementations.hdfs.HDFSFileSystem"
+    },
     Schemes.HTTP: {
         "class": "dvc_http.HTTPFileSystem",
         "err": "http is supported, but requires 'dvc-http' to be installed",
@@ -31,9 +41,15 @@ known_implementations = {
     Schemes.OSS: {"class": "dvc_objects.fs.implementations.oss.OSSFileSystem"},
     Schemes.S3: {"class": "dvc_objects.fs.implementations.s3.S3FileSystem"},
     Schemes.SSH: {"class": "dvc_objects.fs.implementations.ssh.SSHFileSystem"},
-    Schemes.WEBDAV: {"class": "dvc_objects.fs.implementations.webdav.WebDAVFileSystem"},
-    Schemes.WEBDAVS: {"class": "dvc_objects.fs.implementations.webdav.WebDAVSFileSystem"},
-    Schemes.WEBHDFS: {"class": "dvc_objects.fs.implementations.webhdfs.WebHDFSFileSystem"},
+    Schemes.WEBDAV: {
+        "class": "dvc_objects.fs.implementations.webdav.WebDAVFileSystem"
+    },
+    Schemes.WEBDAVS: {
+        "class": "dvc_objects.fs.implementations.webdav.WebDAVSFileSystem"
+    },
+    Schemes.WEBHDFS: {
+        "class": "dvc_objects.fs.implementations.webhdfs.WebHDFSFileSystem"
+    },
 }
 
 
