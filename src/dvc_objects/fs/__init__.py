@@ -14,12 +14,12 @@ if TYPE_CHECKING:
 
 
 known_implementations = {
-    Schemes.LOCAL: {"class": ".implementations.local.LocalFileSystem"},
-    Schemes.MEMORY: {"class": ".implementations.memory.MemoryFileSystem"},
-    Schemes.AZURE: {"class": ".implementations.azure.AzureFileSystem"},
-    Schemes.GDRIVE: {"class": ".implementations.gdrive.GDriveFileSystem"},
-    Schemes.GS: {"class": ".implementations.gs.GSFileSystem"},
-    Schemes.HDFS: {"class": ".implementations.hdfs.HDFSFileSystem"},
+    Schemes.LOCAL: {"class": "dvc_objects.fs.implementations.local.LocalFileSystem"},
+    Schemes.MEMORY: {"class": "dvc_objects.fs.implementations.memory.MemoryFileSystem"},
+    Schemes.AZURE: {"class": "dvc_objects.fs.implementations.azure.AzureFileSystem"},
+    Schemes.GDRIVE: {"class": "dvc_objects.fs.implementations.gdrive.GDriveFileSystem"},
+    Schemes.GS: {"class": "dvc_objects.fs.implementations.gs.GSFileSystem"},
+    Schemes.HDFS: {"class": "dvc_objects.fs.implementations.hdfs.HDFSFileSystem"},
     Schemes.HTTP: {
         "class": "dvc_http.HTTPFileSystem",
         "err": "http is supported, but requires 'dvc-http' to be installed",
@@ -28,12 +28,12 @@ known_implementations = {
         "class": "dvc_http.HTTPSFileSystem",
         "err": "https is supported, but requires 'dvc-http' to be installed",
     },
-    Schemes.OSS: {"class": ".implementations.oss.OSSFileSystem"},
-    Schemes.S3: {"class": ".implementations.s3.S3FileSystem"},
-    Schemes.SSH: {"class": ".implementations.ssh.SSHFileSystem"},
-    Schemes.WEBDAV: {"class": ".implementations.webdav.WebDAVFileSystem"},
-    Schemes.WEBDAVS: {"class", ".implementations.webdav.WebDAVSFileSystem"},
-    Schemes.WEBHDFS: {"class": ".implementations.webhdfs.WebHDFSFileSystem"},
+    Schemes.OSS: {"class": "dvc_objects.fs.implementations.oss.OSSFileSystem"},
+    Schemes.S3: {"class": "dvc_objects.fs.implementations.s3.S3FileSystem"},
+    Schemes.SSH: {"class": "dvc_objects.fs.implementations.ssh.SSHFileSystem"},
+    Schemes.WEBDAV: {"class": "dvc_objects.fs.implementations.webdav.WebDAVFileSystem"},
+    Schemes.WEBDAVS: {"class": "dvc_objects.fs.implementations.webdav.WebDAVSFileSystem"},
+    Schemes.WEBHDFS: {"class": "dvc_objects.fs.implementations.webhdfs.WebHDFSFileSystem"},
 }
 
 
