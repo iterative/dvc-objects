@@ -67,7 +67,12 @@ def _try_links(
         try:
             return _link(link, from_fs, from_path, to_fs, to_path)
         except OSError as exc:
-            if exc.errno not in [errno.EPERM, errno.ENOTSUP, errno.EXDEV]:
+            if exc.errno not in (
+                errno.EPERM,
+                errno.ENOTSUP,
+                errno.EXDEV,
+                errno.ENOTTY,
+            ):
                 raise
             error = exc
 
