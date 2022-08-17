@@ -40,7 +40,10 @@ known_implementations = {
     },
     Schemes.OSS: {"class": "dvc_objects.fs.implementations.oss.OSSFileSystem"},
     Schemes.S3: {"class": "dvc_objects.fs.implementations.s3.S3FileSystem"},
-    Schemes.SSH: {"class": "dvc_objects.fs.implementations.ssh.SSHFileSystem"},
+    Schemes.SSH: {
+        "class": "dvc_ssh.SSHFileSystem",
+        "err": "ssh is supported, but requires 'dvc-ssh' to be installed",
+    },
     Schemes.WEBDAV: {
         "class": "dvc_objects.fs.implementations.webdav.WebDAVFileSystem"
     },

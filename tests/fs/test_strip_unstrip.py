@@ -1,16 +1,9 @@
 import dvc_http
+import dvc_ssh
 import pytest
 
 from dvc_objects.fs.base import FileSystem
-from dvc_objects.fs.implementations import (
-    azure,
-    gs,
-    hdfs,
-    oss,
-    s3,
-    ssh,
-    webhdfs,
-)
+from dvc_objects.fs.implementations import azure, gs, hdfs, oss, s3, webhdfs
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +30,7 @@ def mock_check_requires(mocker):
             "https://example.com/path/to/file",
             "https://example.com/path/to/file",
         ),
-        (ssh.SSHFileSystem, "ssh://example.com:/dir/path", "/dir/path"),
+        (dvc_ssh.SSHFileSystem, "ssh://example.com:/dir/path", "/dir/path"),
         (webhdfs.WebHDFSFileSystem, "webhdfs://example.com", ""),
         (webhdfs.WebHDFSFileSystem, "webhdfs://example.com:8020", ""),
     ],
