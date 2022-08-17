@@ -1,9 +1,14 @@
+import dvc_azure
+import dvc_gs
+import dvc_hdfs
 import dvc_http
+import dvc_oss
+import dvc_s3
 import dvc_ssh
+import dvc_webhdfs
 import pytest
 
 from dvc_objects.fs.base import FileSystem
-from dvc_objects.fs.implementations import azure, gs, hdfs, oss, s3, webhdfs
 
 
 @pytest.fixture(autouse=True)
@@ -14,12 +19,12 @@ def mock_check_requires(mocker):
 @pytest.mark.parametrize(
     "fs_cls, urlpath, stripped",
     [
-        (azure.AzureFileSystem, "azure://container", "container"),
-        (gs.GSFileSystem, "gs://container", "container"),
-        (s3.S3FileSystem, "s3://container", "container"),
-        (oss.OSSFileSystem, "oss://container", "container"),
-        (hdfs.HDFSFileSystem, "hdfs://example.com", ""),
-        (hdfs.HDFSFileSystem, "hdfs://example.com:8020", ""),
+        (dvc_azure.AzureFileSystem, "azure://container", "container"),
+        (dvc_gs.GSFileSystem, "gs://container", "container"),
+        (dvc_s3.S3FileSystem, "s3://container", "container"),
+        (dvc_oss.OSSFileSystem, "oss://container", "container"),
+        (dvc_hdfs.HDFSFileSystem, "hdfs://example.com", ""),
+        (dvc_hdfs.HDFSFileSystem, "hdfs://example.com:8020", ""),
         (
             dvc_http.HTTPFileSystem,
             "http://example.com/path/to/file",
@@ -31,8 +36,8 @@ def mock_check_requires(mocker):
             "https://example.com/path/to/file",
         ),
         (dvc_ssh.SSHFileSystem, "ssh://example.com:/dir/path", "/dir/path"),
-        (webhdfs.WebHDFSFileSystem, "webhdfs://example.com", ""),
-        (webhdfs.WebHDFSFileSystem, "webhdfs://example.com:8020", ""),
+        (dvc_webhdfs.WebHDFSFileSystem, "webhdfs://example.com", ""),
+        (dvc_webhdfs.WebHDFSFileSystem, "webhdfs://example.com:8020", ""),
     ],
 )
 @pytest.mark.parametrize("path", ["", "/path"])
@@ -49,21 +54,25 @@ def test_strip_prptocol(fs_cls, urlpath, stripped, path):
     ],
 )
 def test_hdfs_unstrip_protocol(fs_args, expected_url):
-    fs = hdfs.HDFSFileSystem(**fs_args)
+    fs = dvc_hdfs.HDFSFileSystem(**fs_args)
     assert fs.unstrip_protocol("/path") == expected_url + "/path"
 
 
 @pytest.mark.parametrize(
     "fs_cls, path, expected_url",
     [
-        (azure.AzureFileSystem, "container", "azure://container"),
-        (azure.AzureFileSystem, "container/path", "azure://container/path"),
-        (gs.GSFileSystem, "container", "gs://container"),
-        (gs.GSFileSystem, "container/path", "gs://container/path"),
-        (s3.S3FileSystem, "container", "s3://container"),
-        (s3.S3FileSystem, "container/path", "s3://container/path"),
-        (oss.OSSFileSystem, "container", "oss://container"),
-        (oss.OSSFileSystem, "container/path", "oss://container/path"),
+        (dvc_azure.AzureFileSystem, "container", "azure://container"),
+        (
+            dvc_azure.AzureFileSystem,
+            "container/path",
+            "azure://container/path",
+        ),
+        (dvc_gs.GSFileSystem, "container", "gs://container"),
+        (dvc_gs.GSFileSystem, "container/path", "gs://container/path"),
+        (dvc_s3.S3FileSystem, "container", "s3://container"),
+        (dvc_s3.S3FileSystem, "container/path", "s3://container/path"),
+        (dvc_oss.OSSFileSystem, "container", "oss://container"),
+        (dvc_oss.OSSFileSystem, "container/path", "oss://container/path"),
     ],
 )
 def test_unstrip_protocol(mocker, fs_cls, path, expected_url):
