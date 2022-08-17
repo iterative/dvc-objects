@@ -67,9 +67,8 @@ class SSHFileSystem(FileSystem):
             config["password"] = ask_password(
                 login_info["host"], login_info["username"], login_info["port"]
             )
-
         login_info["password"] = config.get("password")
-        login_info["passphrase"] = config.get("password")
+        login_info["passphrase"] = config.get("passphrase")
 
         raw_keys = []
         if config.get("keyfile"):
