@@ -31,11 +31,11 @@ known_implementations = {
         ),
     },
     Schemes.GS: {
-        "class": "dvc_objects.fs.implementations.gs.GSFileSystem",
+        "class": "dvc_gs.GSFileSystem",
         "err": "gs is supported, but requires 'dvc-gs' to be installed",
     },
     Schemes.HDFS: {
-        "class": "dvc_objects.fs.implementations.hdfs.HDFSFileSystem",
+        "class": "dvc_hdfs.HDFSFileSystem",
         "err": "hdfs is supported, but requires 'dvc-hdfs' to be installed",
     },
     Schemes.HTTP: {
@@ -47,11 +47,11 @@ known_implementations = {
         "err": "https is supported, but requires 'dvc-http' to be installed",
     },
     Schemes.OSS: {
-        "class": "dvc_objects.fs.implementations.oss.OSSFileSystem",
+        "class": "dvc_oss.OSSFileSystem",
         "err": "oss is supported, but requires 'dvc-oss' to be installed",
     },
     Schemes.S3: {
-        "class": "dvc_objects.fs.implementations.s3.S3FileSystem",
+        "class": "dvc_s3.S3FileSystem",
         "err": "s3 is supported, but requires 'dvc-s3' to be installed",
     },
     Schemes.SSH: {
@@ -59,19 +59,19 @@ known_implementations = {
         "err": "ssh is supported, but requires 'dvc-ssh' to be installed",
     },
     Schemes.WEBDAV: {
-        "class": "dvc_objects.fs.implementations.webdav.WebDAVFileSystem",
+        "class": "dvc_webdav.WebDAVFileSystem",
         "err": (
             "webdav is supported, but requires 'dvc-webdav' to be installed"
         ),
     },
     Schemes.WEBDAVS: {
-        "class": "dvc_objects.fs.implementations.webdav.WebDAVSFileSystem",
+        "class": "dvc_webdav.WebDAVSFileSystem",
         "err": (
             "webdavs is supported, but requires 'dvc-webdav' to be installed"
         ),
     },
     Schemes.WEBHDFS: {
-        "class": "dvc_objects.fs.implementations.webhdfs.WebHDFSFileSystem",
+        "class": "dvc_webhdfs.WebHDFSFileSystem",
         "err": (
             "webhdfs is supported, but requires 'dvc-webhdfs' to be installed"
         ),
