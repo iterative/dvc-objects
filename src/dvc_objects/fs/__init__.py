@@ -1,10 +1,10 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator, Type
 from urllib.parse import urlparse
 
 from . import generic  # noqa: F401
-from .implementations.local import LocalFileSystem
-from .implementations.memory import MemoryFileSystem  # noqa: F401
+from .local import LocalFileSystem, localfs  # noqa: F401
+from .memory import MemoryFileSystem  # noqa: F401
 from .scheme import Schemes
 
 if TYPE_CHECKING:
@@ -14,12 +14,8 @@ if TYPE_CHECKING:
 
 
 known_implementations = {
-    Schemes.LOCAL: {
-        "class": "dvc_objects.fs.implementations.local.LocalFileSystem"
-    },
-    Schemes.MEMORY: {
-        "class": "dvc_objects.fs.implementations.memory.MemoryFileSystem"
-    },
+    Schemes.LOCAL: {"class": "dvc_objects.fs.local.LocalFileSystem"},
+    Schemes.MEMORY: {"class": "dvc_objects.fs.memory.MemoryFileSystem"},
     Schemes.AZURE: {
         "class": "dvc_azure.AzureFileSystem",
         "err": "azure is supported, but requires 'dvc-azure' to be installed",
@@ -82,7 +78,7 @@ known_implementations = {
 def _import_class(cls: str):
     """Take a string FQP and return the imported class or identifier
 
-    clas is of the form "package.module.klass".
+    cls is of the form "package.module.klass".
     """
     import importlib
 
@@ -92,22 +88,23 @@ def _import_class(cls: str):
 
 
 class Registry(Mapping):
-    def __init__(self, reg):
+    def __init__(self, reg) -> None:
         self._registry = reg
 
-    def __getitem__(self, key):
-        entry = self._registry.get(key)
-        if not entry:
-            return LocalFileSystem
+    def __getitem__(self, key: str) -> Type["FileSystem"]:
+        entry = self._registry.get(key) or self._registry[Schemes.LOCAL]
         try:
             return _import_class(entry["class"])
         except ImportError as exc:
             raise ImportError(entry["err"]) from exc
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         yield from self._registry
 
-    def __len__(self):
+    def __contains__(self, key: object) -> bool:
+        return key in self._registry
+
+    def __len__(self) -> int:
         return len(self._registry)
 
 
@@ -120,7 +117,7 @@ def get_fs_cls(remote_conf, cls=None, scheme=None):
 
     if not scheme:
         scheme = urlparse(remote_conf["url"]).scheme
-    return registry.get(scheme, LocalFileSystem)
+    return registry.get(scheme)
 
 
 def as_filesystem(
@@ -147,13 +144,15 @@ def as_filesystem(
         return fs
 
     protos = (fs.protocol,) if isinstance(fs.protocol, str) else fs.protocol
-    if "file" in protos or "local" in protos:
-        return LocalFileSystem()
+    if "file" in protos:
+        if klass := registry.get(Schemes.LOCAL):
+            return klass()
 
     # if we have the class in our registry, instantiate with that.
     for proto in protos:
-        if klass := registry.get(proto):
-            return klass(fs=fs, **fs_args)
+        if proto in registry:
+            if klass := registry.get(proto):
+                return klass(fs=fs, **fs_args)
 
     # fallback to unregistered subclasses
     for subclass in FileSystem.__subclasses__():
