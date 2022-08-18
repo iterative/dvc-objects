@@ -1,6 +1,6 @@
 import pytest
 
-from dvc_objects.fs import MemoryFileSystem
+from dvc_objects.fs.memory import MemoryFileSystem
 
 
 @pytest.fixture(autouse=True)

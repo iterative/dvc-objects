@@ -2,7 +2,7 @@ from os import fspath
 
 import pytest
 
-from dvc_objects.fs.implementations.local import LocalFileSystem
+from dvc_objects.fs.local import LocalFileSystem
 
 
 @pytest.mark.parametrize(

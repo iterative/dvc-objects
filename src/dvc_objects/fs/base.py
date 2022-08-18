@@ -450,7 +450,7 @@ class FileSystem:
     ) -> None:
         # Currently, the implementation is non-recursive if the paths are
         # provided as a list, and recursive if it's a single path.
-        from .implementations.local import localfs
+        from .local import localfs
 
         def get_file(rpath, lpath, **kwargs):
             localfs.makedirs(localfs.path.parent(lpath), exist_ok=True)

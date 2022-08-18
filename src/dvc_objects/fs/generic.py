@@ -4,7 +4,7 @@ import os
 from typing import TYPE_CHECKING, List, Optional
 
 from .callbacks import DEFAULT_CALLBACK
-from .implementations.local import LocalFileSystem
+from .local import LocalFileSystem, localfs
 from .utils import as_atomic
 
 if TYPE_CHECKING:
@@ -39,8 +39,6 @@ def copy(
         return to_fs.put_file(from_path, to_path, callback=callback)
 
     if isinstance(to_fs, LocalFileSystem):
-        from .implementations.local import localfs
-
         with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
             return from_fs.get_file(from_path, tmp_file, callback=callback)
 

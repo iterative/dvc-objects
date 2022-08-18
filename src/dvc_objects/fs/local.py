@@ -3,25 +3,23 @@ import os
 import shutil
 import threading
 
-from fsspec import AbstractFileSystem
+import fsspec
 from funcy import cached_property, wrap_prop
 
-from .. import system
-from ..base import FileSystem
-from ..utils import copyfile, makedirs, move, remove, tmp_fname
+from . import system
+from .base import FileSystem
+from .utils import copyfile, makedirs, move, remove, tmp_fname
 
 logger = logging.getLogger(__name__)
 
 
 # pylint:disable=abstract-method, arguments-differ
-class FsspecLocalFileSystem(AbstractFileSystem):
+class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     sep = os.sep
 
     def __init__(self, *args, **kwargs):
-        from fsspec.implementations.local import LocalFileSystem as LocalFS
-
         super().__init__(*args, **kwargs)
-        self.fs = LocalFS()
+        self.fs = fsspec.filesystem("file")
 
     def makedirs(self, path, exist_ok=False):
         makedirs(path, exist_ok=exist_ok)
@@ -178,7 +176,7 @@ class LocalFileSystem(FileSystem):
 
     @cached_property
     def path(self):
-        from ..path import Path
+        from .path import Path
 
         return Path(self.sep, getcwd=os.getcwd, realpath=os.path.realpath)
 
