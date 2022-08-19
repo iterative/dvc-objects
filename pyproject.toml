@@ -65,7 +65,7 @@ ignore_missing_imports = true
 files = ["src", "tests"]
 
 [tool.pylint.message_control]
-enable = ["c-extension-no-member", "no-else-return"]
+enable = ["no-else-return"]
 disable = [
     "format", "refactoring", "spelling", "design",
     "invalid-name", "duplicate-code", "fixme",
@@ -75,10 +75,6 @@ disable = [
     "missing-function-docstring", "missing-module-docstring",
     "missing-class-docstring", "raise-missing-from", "import-outside-toplevel",
 ]
-
-[tool.pylint.typecheck]
-ignored-modules = ["azure"]
-signature-mutators = ["funcy.decorators.decorator"]
 
 [tool.pylint.variables]
 dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
