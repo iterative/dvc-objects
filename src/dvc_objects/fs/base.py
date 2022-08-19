@@ -11,6 +11,7 @@ from typing import (
     Dict,
     Iterator,
     List,
+    Literal,
     Optional,
     Union,
     cast,
@@ -27,7 +28,6 @@ if TYPE_CHECKING:
     from typing import BinaryIO, TextIO
 
     from fsspec.spec import AbstractFileSystem
-    from typing_extensions import Literal
 
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ class FileSystem:
     def open(
         self,
         path: AnyFSPath,
-        mode: "Literal['rb', 'br', 'wb']",
+        mode: Literal["rb", "br", "wb"],
         **kwargs: Any,
     ) -> "BinaryIO":  # pylint: disable=arguments-differ
         return self.open(path, mode, **kwargs)
@@ -175,7 +175,7 @@ class FileSystem:
     def open(
         self,
         path: AnyFSPath,
-        mode: "Literal['r', 'rt', 'w']",
+        mode: Literal["r", "rt", "w"],
         **kwargs: Any,
     ) -> "TextIO":  # pylint: disable=arguments-differ
         ...
@@ -203,7 +203,7 @@ class FileSystem:
         self,
         path: Union[AnyFSPath, List[AnyFSPath]],
         recursive: bool = False,
-        on_error: "Literal['raise', 'omit', 'return']" = "raise",
+        on_error: Literal["raise", "omit", "return"] = "raise",
         **kwargs: Any,
     ) -> Union[bytes, Dict[AnyFSPath, bytes]]:
         return self.fs.cat(
@@ -305,13 +305,11 @@ class FileSystem:
         return not (self.is_symlink(path) or self.is_hardlink(path))
 
     @overload
-    def ls(
-        self, path: AnyFSPath, detail: "Literal[True]"
-    ) -> "Iterator[Entry]":
+    def ls(self, path: AnyFSPath, detail: Literal[True]) -> "Iterator[Entry]":
         ...
 
     @overload
-    def ls(self, path: AnyFSPath, detail: "Literal[False]") -> Iterator[str]:
+    def ls(self, path: AnyFSPath, detail: Literal[False]) -> Iterator[str]:
         ...
 
     def ls(self, path, detail=False, **kwargs):
