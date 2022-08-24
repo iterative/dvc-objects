@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
     from fsspec.spec import AbstractFileSystem
 
+    from .path import Path
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +90,7 @@ class FileSystem:
         return self.fs.root_marker
 
     @cached_property
-    def path(self):
+    def path(self) -> "Path":
         from .path import Path
 
         def _getcwd():
@@ -106,6 +108,10 @@ class FileSystem:
     @cached_property
     def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
         raise NotImplementedError
+
+    @cached_property
+    def version_aware(self) -> bool:
+        return getattr(self.fs, "version_aware", False)
 
     @staticmethod
     def _get_kwargs_from_urls(urlpath: str) -> "Dict[str, Any]":
