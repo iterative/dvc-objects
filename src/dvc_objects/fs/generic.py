@@ -1,6 +1,7 @@
 import errno
 import logging
 import os
+from contextlib import suppress
 from typing import TYPE_CHECKING, List, Optional
 
 from .callbacks import DEFAULT_CALLBACK
@@ -168,7 +169,8 @@ def test_links(
                 if _test_link(link, from_fs, from_file, to_fs, to_file):
                     ret.append(link)
             finally:
-                to_fs.remove(to_file)
+                with suppress(FileNotFoundError):
+                    to_fs.remove(to_file)
     finally:
         from_fs.remove(from_file)
 
