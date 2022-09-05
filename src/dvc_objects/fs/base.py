@@ -111,7 +111,7 @@ class FileSystem:
 
     @cached_property
     def version_aware(self) -> bool:
-        return getattr(self.fs, "version_aware", False)
+        return self.fs_args.get("version_aware", False)
 
     @staticmethod
     def _get_kwargs_from_urls(urlpath: str) -> "Dict[str, Any]":
