@@ -42,13 +42,6 @@ class ObjectDB:
     def __hash__(self):
         return hash((self.fs.protocol, self.path))
 
-    def init(self):
-        if self.read_only:
-            return
-
-        for num in range(0, 256):
-            self.makedirs(self.fs.path.join(self.path, f"{num:x}"))
-
     def exists(self, oid: str) -> bool:
         return self.fs.isfile(self.oid_to_path(oid))
 
@@ -97,6 +90,8 @@ class ObjectDB:
             size = cast("Optional[int]", getattr(fobj, "size", None))
 
         path = self.oid_to_path(oid)
+        parent = self.fs.path.parent(path)
+        self.makedirs(parent)
         self.fs.put_file(fobj, path, size=size)
 
     def add(
@@ -123,6 +118,7 @@ class ObjectDB:
             desc=fs.path.name(path),
             bytes=True,
         ) as cb:
+            self.makedirs(self.fs.path.parent(cache_path))
             generic.transfer(
                 fs,
                 path,
