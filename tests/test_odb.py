@@ -17,18 +17,28 @@ def test_odb(memfs):
     assert hash(odb) == hash(odb)
 
 
+def test_odb_init(memfs):
+    odb = ObjectDB(memfs, "/odb")
+    dirs = [memfs.path.join(odb.path, f"{num:x}") for num in range(0, 256)]
+    assert not memfs.exists(odb.path)
+    odb.init()
+    assert set(dirs) == set(memfs.ls(odb.path, detail=False))
+
+
 @pytest.mark.parametrize(
     "data, expected",
     [(b"contents", b"contents"), (BytesIO(b"contents"), b"contents")],
 )
 def test_add_bytes(memfs, data, expected):
     odb = ObjectDB(memfs, memfs.root_marker)
+    odb.init()
     odb.add_bytes("1234", data)
     assert memfs.cat_file("/12/34") == expected
 
 
 def test_odb_readonly():
     odb = ObjectDB(FileSystem(), "/odb", read_only=True)
+    odb.init()
     with pytest.raises(ObjectDBPermissionError):
         odb.add("/odb/foo", odb.fs, "1234")
 
@@ -40,6 +50,7 @@ def test_odb_add(memfs):
     memfs.pipe({"foo": b"foo", "bar": b"bar"})
 
     odb = ObjectDB(memfs, "/odb")
+    odb.init()
     odb.add("/foo", memfs, "1234")
     assert odb.exists("1234")
 
@@ -50,12 +61,14 @@ def test_odb_add(memfs):
 
 def test_exists(memfs):
     odb = ObjectDB(memfs, "/odb")
+    odb.init()
     odb.add_bytes("1234", b"content")
     assert odb.exists("1234")
 
 
 def test_exists_prefix(memfs):
     odb = ObjectDB(memfs, "/odb")
+    odb.init()
     with pytest.raises(KeyError):
         assert odb.exists_prefix("123")
 
@@ -74,6 +87,7 @@ def test_exists_prefix(memfs):
 )
 def test_exists_prefix_ambiguous(memfs, oid, found):
     odb = ObjectDB(memfs, "/odb")
+    odb.init()
     odb.add_bytes("123456", b"content")
     odb.add_bytes("123450", b"content")
 
@@ -84,6 +98,7 @@ def test_exists_prefix_ambiguous(memfs, oid, found):
 
 def test_move(memfs):
     odb = ObjectDB(memfs, "/")
+    odb.init()
     odb.add_bytes("1234", b"content")
     odb.move("/12/34", "/45/67")
     assert list(memfs.find("")) == ["/45/67"]
@@ -134,6 +149,7 @@ def test_listing_oids(memfs, mocker, traverse):
     assert not list(odb.list_oids_exists(oids))
     assert not odb.oids_exist(oids)
 
+    odb.init()
     odb.add_bytes("123456", b"content")
     assert list(odb.all()) == ["123456"]
     assert list(odb.list_oids_exists(oids))
