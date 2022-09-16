@@ -51,7 +51,7 @@ class ObjectDB:
             return
 
         for num in range(0, 256):
-            self.makedirs(self.fs.path.join(self.path, f"{num:x}"))
+            self.makedirs(self.fs.path.join(self.path, f"{num:02x}"))
 
         self._initialized = True
 
