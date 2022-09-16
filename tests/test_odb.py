@@ -48,6 +48,42 @@ def test_odb_add(memfs):
     assert memfs.cat_file("/odb/12/34") == b"foo"
 
 
+def test_delete(memfs):
+    memfs.pipe({"foo": b"foo", "bar": b"bar"})
+
+    odb = ObjectDB(memfs, "/odb")
+    odb.add("/foo", memfs, "1234")
+    odb.add("/bar", memfs, "4321")
+    assert odb.exists("1234")
+    assert odb.exists("4321")
+
+    odb.delete("1234")
+    assert memfs.isdir("/odb/12")
+    assert memfs.isdir("/odb/43")
+    assert not odb.exists("1234")
+    assert odb.exists("4321")
+
+    odb.delete("4321")
+    assert memfs.isdir("/odb/12")
+    assert memfs.isdir("/odb/43")
+    assert not odb.exists("1234")
+    assert not odb.exists("4321")
+
+
+def test_clear(memfs):
+    memfs.pipe({"foo": b"foo", "bar": b"bar"})
+
+    odb = ObjectDB(memfs, "/odb")
+    odb.add("/foo", memfs, "1234")
+    odb.add("/bar", memfs, "4321")
+
+    odb.clear()
+    assert memfs.isdir("/odb/12")
+    assert memfs.isdir("/odb/43")
+    assert not odb.exists("1234")
+    assert not odb.exists("4321")
+
+
 def test_exists(memfs):
     odb = ObjectDB(memfs, "/odb")
     odb.add_bytes("1234", b"content")
