@@ -142,6 +142,13 @@ class ObjectDB:
                 callback=Callback.as_callback(cb),
             )
 
+    def delete(self, oid: str):
+        self.fs.remove(self.oid_to_path(oid))
+
+    def clear(self):
+        for oid in self.all():
+            self.delete(oid)
+
     def _oid_parts(self, oid: str) -> Tuple[str, str]:
         return oid[:2], oid[2:]
 
