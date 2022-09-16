@@ -31,6 +31,7 @@ class ObjectDB:
         self.fs = fs
         self.path = path
         self.read_only = config.get("read_only", False)
+        self._initialized = False
 
     def __eq__(self, other):
         return (
@@ -41,6 +42,18 @@ class ObjectDB:
 
     def __hash__(self):
         return hash((self.fs.protocol, self.path))
+
+    def _init(self):
+        if self.read_only:
+            return
+
+        if self._initialized:
+            return
+
+        for num in range(0, 256):
+            self.makedirs(self.fs.path.join(self.path, f"{num:x}"))
+
+        self._initialized = True
 
     def exists(self, oid: str) -> bool:
         return self.fs.isfile(self.oid_to_path(oid))
@@ -89,9 +102,9 @@ class ObjectDB:
             fobj = data
             size = cast("Optional[int]", getattr(fobj, "size", None))
 
+        self._init()
+
         path = self.oid_to_path(oid)
-        parent = self.fs.path.parent(path)
-        self.makedirs(parent)
         self.fs.put_file(fobj, path, size=size)
 
     def add(
@@ -112,13 +125,14 @@ class ObjectDB:
         if self.exists(oid):
             return
 
+        self._init()
+
         cache_path = self.oid_to_path(oid)
         with Callback.as_tqdm_callback(
             callback,
             desc=fs.path.name(path),
             bytes=True,
         ) as cb:
-            self.makedirs(self.fs.path.parent(cache_path))
             generic.transfer(
                 fs,
                 path,
