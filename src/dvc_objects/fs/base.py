@@ -70,7 +70,7 @@ class FileSystem:
 
     PARAM_CHECKSUM: ClassVar[Optional[str]] = None
 
-    def __init__(self, fs=None, **kwargs):
+    def __init__(self, fs=None, **kwargs: Any):
         self._check_requires(**kwargs)
 
         self.jobs = kwargs.get("jobs") or self._JOBS
@@ -346,8 +346,8 @@ class FileSystem:
 
     remove = rm
 
-    def info(self, path: AnyFSPath) -> "Entry":
-        return self.fs.info(path)
+    def info(self, path: AnyFSPath, **kwargs) -> "Entry":
+        return self.fs.info(path, **kwargs)
 
     def mkdir(
         self, path: AnyFSPath, create_parents: bool = True, **kwargs: Any
