@@ -1,3 +1,4 @@
+import os
 from os import fspath
 
 import pytest
@@ -55,7 +56,8 @@ def convert_to_sets(walk_results):
     ]
 
 
-def test_walk(tmp_path):
+@pytest.fixture
+def dir_path(tmp_path):
     for file, contents in [
         ("foo", "foo"),
         ("bar", "bar"),
@@ -72,16 +74,48 @@ def test_walk(tmp_path):
     (tmp_path / "data" / "sub" / "file").write_text(
         "sub_file", encoding="utf8"
     )
+    return tmp_path
 
+
+def test_walk(dir_path):
     fs = LocalFileSystem()
-    walk_results = fs.walk(fspath(tmp_path))
+    walk_results = fs.walk(fspath(dir_path))
     assert convert_to_sets(walk_results) == [
-        (str(tmp_path), {"data"}, {"code.py", "bar", "тест", "foo"}),
-        (str(tmp_path / "data"), {"sub"}, {"file"}),
-        (str(tmp_path / "data" / "sub"), set(), {"file"}),
+        (str(dir_path), {"data"}, {"code.py", "bar", "тест", "foo"}),
+        (str(dir_path / "data"), {"sub"}, {"file"}),
+        (str(dir_path / "data" / "sub"), set(), {"file"}),
     ]
 
-    walk_results = fs.walk(fspath(tmp_path / "data" / "sub"))
+    walk_results = fs.walk(fspath(dir_path / "data" / "sub"))
     assert convert_to_sets(walk_results) == [
-        (fspath(tmp_path / "data" / "sub"), set(), {"file"}),
+        (fspath(dir_path / "data" / "sub"), set(), {"file"}),
     ]
+
+
+def test_walk_detail(dir_path):
+    fs = LocalFileSystem()
+    walk_results = list(fs.walk(fspath(dir_path), detail=True))
+
+    expected = [
+        (str(dir_path), {"data"}, {"code.py", "bar", "тест", "foo"}),
+        (str(dir_path / "data"), {"sub"}, {"file"}),
+        (str(dir_path / "data" / "sub"), set(), {"file"}),
+    ]
+
+    assert len(walk_results) == len(expected)
+    for entry, expected_entry in zip(walk_results, expected):
+        root, dirs, files = entry
+        exp_root, exp_dirs, exp_files = expected_entry
+        assert root == exp_root
+        assert len(dirs) == len(exp_dirs)
+        assert len(files) == len(exp_files)
+        for basename in exp_dirs:
+            assert fs.path.normpath(dirs[basename]["name"]) == os.path.join(
+                exp_root, basename
+            )
+            assert dirs[basename]["type"] == "directory"
+        for basename in exp_files:
+            assert fs.path.normpath(files[basename]["name"]) == os.path.join(
+                exp_root, basename
+            )
+            assert files[basename]["type"] == "file"
