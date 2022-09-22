@@ -76,7 +76,7 @@ class FileSystem:
         self.jobs = kwargs.get("jobs") or self._JOBS
         self.hash_jobs = kwargs.get("checksum_jobs") or self.HASH_JOBS
         self._config = kwargs
-        self.fs_args = {"skip_instance_cache": True}
+        self.fs_args: Dict[str, Any] = {"skip_instance_cache": True}
         self.fs_args.update(self._prepare_credentials(**kwargs))
         if fs:
             self.fs = fs
