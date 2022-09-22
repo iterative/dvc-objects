@@ -58,7 +58,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     def isdir(self, path) -> bool:
         return os.path.isdir(path)
 
-    def walk(self, path, maxdepth=None, topdown=True, **kwargs):
+    def walk(self, path, maxdepth=None, topdown=True, detail=False, **kwargs):
         """Directory fs generator.
 
         See `os.walk` for the docs. Differences:
@@ -68,7 +68,20 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             path,
             topdown=topdown,
         ):
-            yield os.path.normpath(root), dirs, files
+            if detail:
+                yield (
+                    os.path.normpath(root),
+                    {
+                        name: self.info(os.path.join(root, name))
+                        for name in dirs
+                    },
+                    {
+                        name: self.info(os.path.join(root, name))
+                        for name in files
+                    },
+                )
+            else:
+                yield os.path.normpath(root), dirs, files
 
     def find(self, path, **kwargs):
         for root, _, files in self.walk(path, **kwargs):
