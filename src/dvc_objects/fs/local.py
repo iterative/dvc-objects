@@ -71,17 +71,21 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             topdown=topdown,
         ):
             if detail:
+                dirs_dict = {
+                    name: self.info(os.path.join(root, name)) for name in dirs
+                }
+                files_dict = {
+                    name: self.info(os.path.join(root, name)) for name in files
+                }
                 yield (
                     os.path.normpath(root),
-                    {
-                        name: self.info(os.path.join(root, name))
-                        for name in dirs
-                    },
-                    {
-                        name: self.info(os.path.join(root, name))
-                        for name in files
-                    },
+                    dirs_dict,
+                    files_dict,
                 )
+                # NOTE: with os.walk you can modify dirs to avoid walking
+                # into them. This is us emulating that behaviour for
+                # dicts returned by detail=True.
+                dirs[:] = list(dirs_dict.keys())
             else:
                 yield os.path.normpath(root), dirs, files
 
