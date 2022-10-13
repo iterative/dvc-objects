@@ -36,16 +36,19 @@ def copy(
     to_path: "AnyFSPath",
     callback: "Callback" = DEFAULT_CALLBACK,
 ) -> None:
+    get_file = callback.wrap_and_branch(from_fs.get_file)
+    put_file = callback.wrap_and_branch(to_fs.put_file)
+
     if isinstance(from_fs, LocalFileSystem):
-        return to_fs.put_file(from_path, to_path, callback=callback)
+        return put_file(from_path, to_path, callback=callback)
 
     if isinstance(to_fs, LocalFileSystem):
         with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
-            return from_fs.get_file(from_path, tmp_file, callback=callback)
+            return get_file(from_path, tmp_file, callback=callback)
 
     with from_fs.open(from_path, mode="rb") as fobj:
         size = from_fs.size(from_path)
-        return to_fs.put_file(fobj, to_path, size=size, callback=callback)
+        return put_file(fobj, to_path, size=size, callback=callback)
 
 
 def _try_links(
@@ -64,7 +67,9 @@ def _try_links(
             return copy(from_fs, from_path, to_fs, to_path, callback=callback)
 
         try:
-            return _link(link, from_fs, from_path, to_fs, to_path)
+            _link(link, from_fs, from_path, to_fs, to_path)
+            callback.relative_update()
+            return
         except OSError as exc:
             if exc.errno not in (
                 errno.EPERM,

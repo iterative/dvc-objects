@@ -52,8 +52,8 @@ class Callback(fsspec.Callback):
         wrapped = self.wrap_fn(fn)
 
         @wraps(fn)
-        def func(path1: str, path2: str):
-            kw: Dict[str, Any] = {}
+        def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+            kw: Dict[str, Any] = dict(kwargs)
             with self.branch(path1, path2, kw):
                 return wrapped(path1, path2, **kw)
 
@@ -94,7 +94,7 @@ class Callback(fsspec.Callback):
 
     def branch(  # pylint: disable=arguments-differ
         self,
-        path_1: str,
+        path_1: "Union[str, BinaryIO]",
         path_2: str,
         kwargs: Dict[str, Any],
         child: "Callback" = None,
@@ -149,12 +149,14 @@ class TqdmCallback(Callback):
 
     def branch(
         self,
-        path_1: str,
+        path_1: "Union[str, BinaryIO]",
         path_2: str,
-        kwargs,
+        kwargs: Dict[str, Any],
         child: Optional[Callback] = None,
     ):
-        child = child or TqdmCallback(bytes=True, desc=path_1)
+        child = child or TqdmCallback(
+            bytes=True, desc=path_1 if isinstance(path_1, str) else path_2
+        )
         return super().branch(path_1, path_2, kwargs, child=child)
 
 
