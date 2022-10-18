@@ -2,7 +2,8 @@ import errno
 import logging
 import os
 from contextlib import suppress
-from typing import TYPE_CHECKING, List, Optional
+from functools import wraps
+from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
 from .callbacks import DEFAULT_CALLBACK
 from .local import LocalFileSystem, localfs
@@ -13,6 +14,31 @@ if TYPE_CHECKING:
     from .callbacks import Callback
 
 logger = logging.getLogger(__name__)
+
+
+def log_exceptions(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(
+        from_fs: "FileSystem",
+        from_path: "AnyFSPath",
+        to_fs: "FileSystem",
+        to_path: "AnyFSPath",
+        *args: Any,
+        **kwargs: Any,
+    ) -> int:
+        try:
+            func(from_fs, from_path, to_fs, to_path, *args, **kwargs)
+            return 0
+        except Exception as exc:  # pylint: disable=broad-except
+            # NOTE: this means we ran out of file descriptors and there is no
+            # reason to try to proceed, as we will hit this error anyways.
+            # pylint: disable=no-member
+            if isinstance(exc, OSError) and exc.errno == errno.EMFILE:
+                raise
+            logger.exception("failed to transfer '%s'", from_path)
+            return 1
+
+    return wrapper
 
 
 def _link(
