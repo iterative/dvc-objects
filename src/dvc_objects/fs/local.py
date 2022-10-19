@@ -18,10 +18,8 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     sep = os.sep
 
     def __init__(self, *args, **kwargs):
-        from ._local import LocalFileSystem as _LocalFileSystem
-
         super().__init__(*args, **kwargs)
-        self.fs = _LocalFileSystem()
+        self.fs = fsspec.filesystem("file")
 
     def makedirs(self, path, exist_ok=False):
         makedirs(path, exist_ok=exist_ok)
