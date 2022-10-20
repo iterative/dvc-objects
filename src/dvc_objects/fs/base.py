@@ -246,6 +246,39 @@ class FileSystem:
     def pipe_file(self, path: AnyFSPath, value: bytes, **kwargs: Any) -> None:
         return self.fs.pipe_file(path, value, **kwargs)
 
+    write_bytes = pipe_file
+    read_bytes = cat_file
+
+    def read_text(
+        self,
+        path: AnyFSPath,
+        encoding: str = None,
+        errors: str = None,
+        newline: str = None,
+        **kwargs: Any,
+    ) -> str:
+        return self.fs.read_text(
+            path, encoding=encoding, errors=errors, newline=newline, **kwargs
+        )
+
+    def write_text(
+        self,
+        path: AnyFSPath,
+        value: str,
+        encoding: str = None,
+        errors: str = None,
+        newline: str = None,
+        **kwargs: Any,
+    ) -> None:
+        self.fs.write_text(
+            path,
+            value,
+            encoding=encoding,
+            errors=errors,
+            newline=newline,
+            **kwargs,
+        )
+
     def pipe(
         self,
         path: Union[AnyFSPath, Dict[AnyFSPath, bytes]],
