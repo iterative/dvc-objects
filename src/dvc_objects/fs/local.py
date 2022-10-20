@@ -22,23 +22,18 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         self.fs = fsspec.filesystem("file")
 
     def makedirs(self, path, exist_ok=False):
-        makedirs(path, exist_ok=exist_ok)
+        self.fs.makedirs(path, exist_ok=exist_ok)
 
     def mkdir(self, path, create_parents=True, **kwargs):
-        if self.exists(path):
-            raise FileExistsError(path)
-        if create_parents:
-            self.makedirs(path, exist_ok=True)
-        else:
-            os.mkdir(path, **kwargs)
+        self.fs.mkdir(path, create_parents=create_parents, **kwargs)
 
     def lexists(self, path, **kwargs):
-        return os.path.lexists(path)
+        return self.fs.lexists(path, **kwargs)
 
     def exists(self, path, **kwargs):
         # TODO: replace this with os.path.exists once the problem is fixed on
         # the fsspec https://github.com/intake/filesystem_spec/issues/742
-        return os.path.lexists(path)
+        return self.lexists(path)
 
     def checksum(self, path) -> str:
         from fsspec.utils import tokenize
@@ -112,7 +107,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         move(path1, path2)
 
     def rmdir(self, path):
-        os.rmdir(path)
+        self.fs.rmdir(path)
 
     def rm_file(self, path):
         remove(path)
