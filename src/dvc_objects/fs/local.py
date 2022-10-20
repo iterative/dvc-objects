@@ -136,17 +136,16 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         return open(path, mode=mode, encoding=encoding)
 
     def symlink(self, path1, path2):
-        return system.symlink(path1, path2)
+        return self.fs.symlink(path1, path2)
 
-    @staticmethod
-    def is_symlink(path):
-        return system.is_symlink(path)
+    def islink(self, path):
+        return self.fs.islink(path)
 
     @staticmethod
     def is_hardlink(path):
         return system.is_hardlink(path)
 
-    def hardlink(self, path1, path2):
+    def link(self, path1, path2):
         # If there are a lot of empty files (which happens a lot in datasets),
         # and the cache type is `hardlink`, we might reach link limits and
         # will get something like: `too many links error`

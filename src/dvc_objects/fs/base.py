@@ -316,23 +316,27 @@ class FileSystem:
         except AttributeError:
             raise LinkError("symlink", self, from_info)
 
-    def hardlink(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
+    def link(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
         try:
-            return self.fs.hardlink(from_info, to_info)
+            return self.fs.link(from_info, to_info)
         except AttributeError:
-            raise LinkError("symlink", self, from_info)
+            raise LinkError("hardlink", self, from_info)
+
+    hardlink = link
 
     def reflink(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
         try:
             return self.fs.reflink(from_info, to_info)
         except AttributeError:
-            raise LinkError("symlink", self, from_info)
+            raise LinkError("reflink", self, from_info)
 
-    def is_symlink(self, path: AnyFSPath) -> bool:
+    def islink(self, path: AnyFSPath) -> bool:
         try:
-            return self.fs.is_symlink(path)
+            return self.fs.islink(path)
         except AttributeError:
             return False
+
+    is_symlink = islink
 
     def is_hardlink(self, path: AnyFSPath) -> bool:
         try:
