@@ -1,6 +1,7 @@
 import itertools
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from functools import partial
 from io import BytesIO
 from typing import TYPE_CHECKING, BinaryIO, Optional, Tuple, Union, cast
@@ -50,8 +51,16 @@ class ObjectDB:
         if self._initialized:
             return
 
-        for num in range(0, 256):
-            self.makedirs(self.fs.path.join(self.path, f"{num:02x}"))
+        dnames = {f"{num:02x}" for num in range(0, 256)}
+        existing = set()
+        with suppress(FileNotFoundError):
+            existing = {
+                self.fs.path.basename(path)
+                for path in self.fs.ls(self.path, detail=False)
+            }
+
+        for dname in dnames.difference(existing):
+            self.makedirs(self.fs.path.join(self.path, dname))
 
         self._initialized = True
 
