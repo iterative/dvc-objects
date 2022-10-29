@@ -55,7 +55,7 @@ class ObjectDB:
         existing = set()
         with suppress(FileNotFoundError):
             existing = {
-                self.fs.path.basename(path)
+                self.fs.path.name(path)
                 for path in self.fs.ls(self.path, detail=False)
             }
 
