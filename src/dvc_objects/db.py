@@ -53,7 +53,7 @@ class ObjectDB:
 
         dnames = {f"{num:02x}" for num in range(0, 256)}
         existing = set()
-        with suppress(FileNotFoundError):
+        with suppress(FileNotFoundError, NotImplementedError):
             existing = {
                 self.fs.path.name(path)
                 for path in self.fs.ls(self.path, detail=False)
