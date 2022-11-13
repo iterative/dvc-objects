@@ -32,7 +32,7 @@ class ObjectDB:
         self.fs = fs
         self.path = path
         self.read_only = config.get("read_only", False)
-        self._initialized = False
+        self._dirs: Optional[set] = None
 
     def __eq__(self, other):
         return (
@@ -44,25 +44,23 @@ class ObjectDB:
     def __hash__(self):
         return hash((self.fs.protocol, self.path))
 
-    def _init(self):
+    def _init(self, dname: str) -> None:
         if self.read_only:
             return
 
-        if self._initialized:
+        if self._dirs is None:
+            self._dirs = set()
+            with suppress(FileNotFoundError, NotImplementedError):
+                self._dirs = {
+                    self.fs.path.name(path)
+                    for path in self.fs.ls(self.path, detail=False)
+                }
+
+        if dname in self._dirs:
             return
 
-        dnames = {f"{num:02x}" for num in range(0, 256)}
-        existing = set()
-        with suppress(FileNotFoundError, NotImplementedError):
-            existing = {
-                self.fs.path.name(path)
-                for path in self.fs.ls(self.path, detail=False)
-            }
-
-        for dname in dnames.difference(existing):
-            self.makedirs(self.fs.path.join(self.path, dname))
-
-        self._initialized = True
+        self.makedirs(self.fs.path.join(self.path, dname))
+        self._dirs.add(dname)
 
     def exists(self, oid: str) -> bool:
         return self.fs.isfile(self.oid_to_path(oid))
@@ -111,7 +109,7 @@ class ObjectDB:
             fobj = data
             size = cast("Optional[int]", getattr(fobj, "size", None))
 
-        self._init()
+        self._init(self._oid_parts(oid)[0])
 
         path = self.oid_to_path(oid)
         self.fs.put_file(fobj, path, size=size)
@@ -134,7 +132,7 @@ class ObjectDB:
         if self.exists(oid):
             return
 
-        self._init()
+        self._init(self._oid_parts(oid)[0])
 
         cache_path = self.oid_to_path(oid)
         with Callback.as_tqdm_callback(
