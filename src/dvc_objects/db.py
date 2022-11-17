@@ -34,15 +34,15 @@ class ObjectDB:
         self.read_only = config.get("read_only", False)
         self._dirs: Optional[set] = None
 
-    def __eq__(self, other):
-        return (
-            self.fs == other.fs
+    def __eq__(self, other: object):
+        return isinstance(other, ObjectDB) and (
+            self.fs.protocol == other.fs.protocol
             and self.path == other.path
             and self.read_only == other.read_only
         )
 
     def __hash__(self):
-        return hash((self.fs.protocol, self.path))
+        return hash((self.fs.protocol, self.path, self.read_only))
 
     def _init(self, dname: str) -> None:
         if self.read_only:
