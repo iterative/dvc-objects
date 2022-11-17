@@ -181,7 +181,7 @@ class FileSystem:
     def open(
         self,
         path: AnyFSPath,
-        mode: Literal["r", "rt", "w"],
+        mode: Literal["r", "rt", "w"] = "r",
         **kwargs: Any,
     ) -> "TextIO":  # pylint: disable=arguments-differ
         ...
