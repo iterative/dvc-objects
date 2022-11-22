@@ -122,7 +122,7 @@ class ObjectDB:
         hardlink: bool = False,
         callback: "Callback" = None,
         **kwargs,
-    ):
+    ) -> int:
         from dvc_objects.fs import generic
         from dvc_objects.fs.callbacks import Callback
 
@@ -130,7 +130,7 @@ class ObjectDB:
             raise ObjectDBPermissionError("Cannot add to read-only ODB")
 
         if self.exists(oid):
-            return
+            return 0
 
         self._init(self._oid_parts(oid)[0])
 
@@ -148,6 +148,7 @@ class ObjectDB:
                 hardlink=hardlink,
                 callback=Callback.as_callback(cb),
             )
+            return 1
 
     def delete(self, oid: str):
         self.fs.remove(self.oid_to_path(oid))
