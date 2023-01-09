@@ -119,3 +119,12 @@ def test_walk_detail(dir_path):
                 exp_root, basename
             )
             assert files[basename]["type"] == "file"
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="A file name can't contain newlines on Windows"
+)
+def test_normpath_with_newlines():
+    fs = LocalFileSystem()
+    newline_path = os.path.join("one", "two\nthree")
+    assert fs.path.normpath(newline_path) == newline_path

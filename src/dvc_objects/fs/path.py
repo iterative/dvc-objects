@@ -144,3 +144,8 @@ class Path:
 
     def as_posix(self, path: str) -> str:
         return path.replace(self.flavour.sep, posixpath.sep)
+
+
+class LocalFileSystemPath(Path):
+    def normpath(self, path: str) -> str:
+        return self.flavour.normpath(path)
