@@ -187,9 +187,11 @@ class LocalFileSystem(FileSystem):
 
     @cached_property
     def path(self):
-        from .path import Path
+        from .path import LocalFileSystemPath
 
-        return Path(self.sep, getcwd=os.getcwd, realpath=os.path.realpath)
+        return LocalFileSystemPath(
+            self.sep, getcwd=os.getcwd, realpath=os.path.realpath
+        )
 
     def upload_fobj(self, fobj, to_info, **kwargs):
         self.makedirs(self.path.parent(to_info))
