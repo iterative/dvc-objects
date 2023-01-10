@@ -1,10 +1,14 @@
+import asyncio
 import errno
 import logging
 import os
 from contextlib import suppress
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
+from fsspec.asyn import get_loop
+
+from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK
 from .local import LocalFileSystem, localfs
 from .utils import as_atomic
@@ -14,6 +18,11 @@ if TYPE_CHECKING:
     from .callbacks import Callback
 
 logger = logging.getLogger(__name__)
+
+
+TransferErrorHandler = Callable[
+    ["AnyFSPath", "AnyFSPath", BaseException], None
+]
 
 
 def log_exceptions(func: Callable) -> Callable:
@@ -57,24 +66,171 @@ def _link(
 
 def copy(
     from_fs: "FileSystem",
-    from_path: "AnyFSPath",
+    from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",
-    to_path: "AnyFSPath",
+    to_path: Union["AnyFSPath", List["AnyFSPath"]],
     callback: "Callback" = DEFAULT_CALLBACK,
+    batch_size: Optional[int] = None,
+    on_error: Optional[TransferErrorHandler] = None,
 ) -> None:
-    get_file = callback.wrap_and_branch(from_fs.get_file)
-    put_file = callback.wrap_and_branch(to_fs.put_file)
+    # NOTE: We intentionally do not use fs.get()/fs.put() here.
+    # get/put support batching but also include fsspec overhead from doing path
+    # and recursive directory expension that we don't want in copy/transfer
+
+    if isinstance(from_path, str):
+        from_path = [from_path]
+    if isinstance(to_path, str):
+        to_path = [to_path]
 
     if isinstance(from_fs, LocalFileSystem):
-        return put_file(from_path, to_path, callback=callback)
-
+        return _put(
+            from_path,
+            to_fs,
+            to_path,
+            callback=callback,
+            batch_size=batch_size,
+            on_error=on_error,
+        )
     if isinstance(to_fs, LocalFileSystem):
-        with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
-            return get_file(from_path, tmp_file, callback=callback)
+        return _get(
+            from_fs,
+            from_path,
+            to_path,
+            callback=callback,
+            batch_size=batch_size,
+            on_error=on_error,
+        )
 
-    with from_fs.open(from_path, mode="rb") as fobj:
-        size = from_fs.size(from_path)
-        return put_file(fobj, to_path, size=size, callback=callback)
+    put_file = callback.wrap_and_branch(to_fs.put_file)
+
+    def _copy_one(from_p: "AnyFSPath", to_p: "AnyFSPath"):
+        try:
+            with from_fs.open(from_p, mode="rb") as fobj:
+                size = from_fs.size(from_p)
+                return put_file(fobj, to_p, size=size, callback=callback)
+        except Exception as exc:  # pylint: disable=broad-except
+            if on_error is not None:
+                on_error(from_p, to_p, exc)
+            else:
+                raise
+
+    if len(from_path) == 1:
+        return _copy_one(from_path[0], to_path[0])
+
+    jobs = batch_size or to_fs.jobs
+    executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+    with executor:
+        list(executor.imap_unordered(_copy_one, from_path, to_path))
+
+
+def _put(
+    from_paths: List["AnyFSPath"],
+    to_fs: "FileSystem",
+    to_paths: List["AnyFSPath"],
+    callback: "Callback" = DEFAULT_CALLBACK,
+    batch_size: Optional[int] = None,
+    on_error: Optional[TransferErrorHandler] = None,
+) -> None:
+    put_file = callback.wrap_and_branch(to_fs.put_file)
+
+    def _put_one(from_path: "AnyFSPath", to_path: "AnyFSPath"):
+        try:
+            return put_file(from_path, to_path, callback=callback)
+        except Exception as exc:  # pylint: disable=broad-except
+            if on_error is not None:
+                on_error(from_path, to_path, exc)
+            else:
+                raise
+
+    if len(from_paths) == 1:
+        return _put_one(from_paths[0], to_paths[0])
+
+    jobs = batch_size or to_fs.jobs
+    if to_fs.fs.async_impl:
+        put_coro = callback.wrap_and_branch_coro(
+            to_fs.fs._put_file  # pylint: disable=protected-access
+        )
+        loop = get_loop()
+        fut = asyncio.run_coroutine_threadsafe(
+            batch_coros(
+                [
+                    put_coro(from_path, to_path, callback=callback)
+                    for from_path, to_path in zip(from_paths, to_paths)
+                ],
+                batch_size=jobs,
+                return_exceptions=True,
+            ),
+            loop,
+        )
+        for i, result in enumerate(fut.result()):
+            if isinstance(result, BaseException):
+                if on_error is not None:
+                    on_error(from_paths[i], to_paths[i], result)
+                else:
+                    raise result
+        return
+
+    executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+    with executor:
+        list(executor.imap_unordered(_put_one, from_paths, to_paths))
+
+
+def _get(
+    from_fs: "FileSystem",
+    from_paths: List["AnyFSPath"],
+    to_paths: List["AnyFSPath"],
+    callback: "Callback" = DEFAULT_CALLBACK,
+    batch_size: Optional[int] = None,
+    on_error: Optional[TransferErrorHandler] = None,
+) -> None:
+    get_file = callback.wrap_and_branch(from_fs.get_file)
+
+    def _get_one(from_path: "AnyFSPath", to_path: "AnyFSPath"):
+        with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
+            try:
+                return get_file(from_path, tmp_file, callback=callback)
+            except Exception as exc:  # pylint: disable=broad-except
+                if on_error is not None:
+                    on_error(from_path, to_path, exc)
+                else:
+                    raise
+
+    if len(from_paths) == 1:
+        return _get_one(from_paths[0], to_paths[0])
+
+    jobs = batch_size or from_fs.jobs
+    if from_fs.fs.async_impl:
+
+        async def _get_one_coro(from_path: "AnyFSPath", to_path: "AnyFSPath"):
+            get_coro = callback.wrap_and_branch_coro(
+                from_fs.fs._get_file  # pylint: disable=protected-access
+            )
+            with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
+                return await get_coro(from_path, tmp_file, callback=callback)
+
+        loop = get_loop()
+        fut = asyncio.run_coroutine_threadsafe(
+            batch_coros(
+                [
+                    _get_one_coro(from_path, to_path)
+                    for from_path, to_path in zip(from_paths, to_paths)
+                ],
+                batch_size=jobs,
+                return_exceptions=True,
+            ),
+            loop,
+        )
+        for i, result in enumerate(fut.result()):
+            if isinstance(result, BaseException):
+                if on_error is not None:
+                    on_error(from_paths[i], to_paths[i], result)
+                else:
+                    raise result
+        return
+
+    executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+    with executor:
+        list(executor.imap_unordered(_get_one, from_paths, to_paths))
 
 
 def _try_links(
@@ -115,40 +271,75 @@ def _try_links(
 
 def transfer(
     from_fs: "FileSystem",
-    from_path: "AnyFSPath",
+    from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",
-    to_path: "AnyFSPath",
+    to_path: Union["AnyFSPath", List["AnyFSPath"]],
     hardlink: bool = False,
     links: Optional[List["str"]] = None,
     callback: "Callback" = DEFAULT_CALLBACK,
+    batch_size: Optional[int] = None,
+    on_error: Optional[TransferErrorHandler] = None,
 ) -> None:
-    try:
-        assert not (hardlink and links)
-        if hardlink:
-            links = links or ["reflink", "hardlink", "copy"]
-        else:
-            links = links or ["reflink", "copy"]
+    if isinstance(from_path, str):
+        from_path = [from_path]
+    if isinstance(to_path, str):
+        to_path = [to_path]
+    assert len(from_path) == len(to_path)
 
-        _try_links(
-            links, from_fs, from_path, to_fs, to_path, callback=callback
-        )
-    except OSError as exc:
-        # If the target file already exists, we are going to simply
-        # ignore the exception (#4992).
-        #
-        # On Windows, it is not always guaranteed that you'll get
-        # FileExistsError (it might be PermissionError or a bare OSError)
-        # but all of those exceptions raised from the original
-        # FileExistsError so we have a separate check for that.
-        if isinstance(exc, FileExistsError) or (
-            os.name == "nt"
-            and exc.__context__
-            and isinstance(exc.__context__, FileExistsError)
-        ):
-            logger.debug("'%s' file already exists, skipping", to_path)
-            return None
+    assert not (hardlink and links)
+    if hardlink:
+        links = links or ["reflink", "hardlink", "copy"]
+    else:
+        links = links or ["reflink", "copy"]
 
-        raise
+    callback.set_size(len(from_path))
+    # Try to link files sequentially. If/when the only remaining link type is
+    # copy, the remaining copy operations will be batched.
+    for i, (from_p, to_p) in enumerate(zip(from_path, to_path)):
+        if links[0] == "copy":
+            return copy(
+                from_fs,
+                from_path[i:],
+                to_fs,
+                to_path[i:],
+                callback=callback,
+                batch_size=batch_size,
+                on_error=on_error,
+            )
+        try:
+            _try_links(
+                links,
+                from_fs,
+                from_p,
+                to_fs,
+                to_p,
+                callback=callback,
+            )
+        except OSError as exc:
+            # If the target file already exists, we are going to simply
+            # ignore the exception (#4992).
+            #
+            # On Windows, it is not always guaranteed that you'll get
+            # FileExistsError (it might be PermissionError or a bare OSError)
+            # but all of those exceptions raised from the original
+            # FileExistsError so we have a separate check for that.
+            if isinstance(exc, FileExistsError) or (
+                os.name == "nt"
+                and exc.__context__
+                and isinstance(exc.__context__, FileExistsError)
+            ):
+                logger.debug("'%s' file already exists, skipping", to_path)
+                return None
+
+            if on_error is not None:
+                on_error(from_p, to_p, exc)
+            else:
+                raise
+        except Exception as exc:  # pylint: disable=broad-except
+            if on_error is not None:
+                on_error(from_p, to_p, exc)
+            else:
+                raise
 
 
 def _test_link(
