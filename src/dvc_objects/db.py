@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import (
     TYPE_CHECKING,
     BinaryIO,
-    Collection,
+    Callable,
     Iterable,
     Iterator,
     List,
@@ -17,6 +17,7 @@ from typing import (
 )
 
 from .errors import ObjectDBPermissionError
+from .fs.callbacks import DEFAULT_CALLBACK
 from .obj import Object
 
 if TYPE_CHECKING:
@@ -126,40 +127,60 @@ class ObjectDB:
 
     def add(
         self,
-        path: "AnyFSPath",
+        path: Union["AnyFSPath", List["AnyFSPath"]],
         fs: "FileSystem",
-        oid: str,
+        oid: Union[str, List[str]],
         hardlink: bool = False,
-        callback: "Callback" = None,
+        callback: "Callback" = DEFAULT_CALLBACK,
         check_exists: bool = True,
+        on_error: Optional[Callable[[str, BaseException], None]] = None,
         **kwargs,
     ) -> int:
         from dvc_objects.fs import generic
-        from dvc_objects.fs.callbacks import Callback
 
         if self.read_only:
             raise ObjectDBPermissionError("Cannot add to read-only ODB")
 
-        if check_exists and self.exists(oid):
+        if isinstance(path, str):
+            path = [path]
+        if isinstance(oid, str):
+            oid = [oid]
+        assert len(path) == len(oid)
+
+        if check_exists:
+            to_add = [
+                (from_p, to_oid)
+                for from_p, to_oid in zip(path, oid)
+                if not self.exists(to_oid)
+            ]
+        else:
+            to_add = list(zip(path, oid))
+        if not to_add:
             return 0
 
-        self._init(self._oid_parts(oid)[0])
+        for parts in {self._oid_parts(to_oid)[0] for _, to_oid in to_add}:
+            self._init(parts)
 
-        cache_path = self.oid_to_path(oid)
-        with Callback.as_tqdm_callback(
-            callback,
-            desc=fs.path.name(path),
-            bytes=True,
-        ) as cb:
-            generic.transfer(
-                fs,
-                path,
-                self.fs,
-                cache_path,
-                hardlink=hardlink,
-                callback=Callback.as_callback(cb),
-            )
-            return 1
+        failed = 0
+
+        def _on_error(_from_p: str, _to_p: str, exc: BaseException):
+            assert on_error is not None
+            nonlocal failed
+            failed += 1
+            oid = self.path_to_oid(_to_p)
+            on_error(oid, exc)
+
+        from_paths, to_oids = zip(*to_add)
+        generic.transfer(
+            fs,
+            list(from_paths),
+            self.fs,
+            [self.oid_to_path(to_oid) for to_oid in to_oids],
+            hardlink=hardlink,
+            callback=callback,
+            on_error=_on_error if on_error is not None else None,
+        )
+        return len(to_add) - failed
 
     def delete(self, oid: str):
         self.fs.remove(self.oid_to_path(oid))
@@ -175,7 +196,9 @@ class ObjectDB:
         return self.fs.path.join(self.path, *self._oid_parts(oid))
 
     def _list_prefixes(
-        self, prefixes: Optional[Iterable[str]] = None
+        self,
+        prefixes: Optional[Iterable[str]] = None,
+        jobs: Optional[int] = None,
     ) -> Iterator[str]:
         if prefixes:
             paths: Union[str, List[str]] = list(
@@ -185,7 +208,7 @@ class ObjectDB:
                 paths = paths[0]
         else:
             paths = self.path
-        yield from self.fs.find(paths)
+        yield from self.fs.find(paths, batch_size=jobs)
 
     def path_to_oid(self, path) -> str:
         parts = self.fs.path.parts(path)[-2:]
@@ -198,13 +221,14 @@ class ObjectDB:
     def _list_oids(
         self,
         prefixes: Optional[Iterable[str]] = None,
+        jobs: Optional[int] = None,
     ) -> Iterator[str]:
         """Iterate over oids in this fs.
 
         If `prefix` is specified, only oids which begin with `prefix`
         will be returned.
         """
-        for path in self._list_prefixes(prefixes=prefixes):
+        for path in self._list_prefixes(prefixes=prefixes, jobs=jobs):
             try:
                 yield self.path_to_oid(path)
             except ValueError:
@@ -216,9 +240,10 @@ class ObjectDB:
         self,
         limit: int,
         prefixes: Optional[Iterable[str]] = None,
+        jobs: Optional[int] = None,
     ) -> Iterator[str]:
         count = 0
-        for oid in self._list_oids(prefixes=prefixes):
+        for oid in self._list_oids(prefixes=prefixes, jobs=jobs):
             yield oid
             count += 1
             if count > limit:
@@ -305,7 +330,7 @@ class ObjectDB:
                     for i in range(1, pow(16, self.fs.TRAVERSE_PREFIX_LEN - 2))
                 ]
 
-        yield from self._list_oids(prefixes=traverse_prefixes)
+        yield from self._list_oids(prefixes=traverse_prefixes, jobs=jobs)
 
     def all(self, jobs=None):
         """Iterate over all oids in this fs.
@@ -314,20 +339,18 @@ class ObjectDB:
         (except for small remotes) and a progress bar will be displayed.
         """
         if not self.fs.CAN_TRAVERSE:
-            return self._list_oids()
+            return self._list_oids(jobs=jobs)
 
         remote_size, remote_oids = self._estimate_remote_size()
         return self._list_oids_traverse(remote_size, remote_oids, jobs=jobs)
 
-    def list_oids_exists(
-        self, oids: Collection[str], jobs: Optional[int] = None
-    ):
+    def list_oids_exists(self, oids: List[str], jobs: Optional[int] = None):
         """Return list of the specified oids which exist in this fs.
         Hashes will be queried individually.
         """
         logger.debug(f"Querying {len(oids)} oids via object_exists")
         paths = list(map(self.oid_to_path, oids))
-        in_remote = self.fs.exists(paths)
+        in_remote = self.fs.exists(paths, batch_size=jobs)
         yield from itertools.compress(oids, in_remote)
 
     def oids_exist(self, oids, jobs=None, progress=noop):
@@ -379,7 +402,7 @@ class ObjectDB:
         if (
             len(oids) == 1 or not self.fs.CAN_TRAVERSE
         ) and not always_traverse:
-            remote_oids = self.list_oids_exists(oids, jobs)
+            remote_oids = self.list_oids_exists(oids, jobs=jobs)
             callback = partial(progress, "querying", len(oids))
             return list(wrap_iter(remote_oids, callback))
 
@@ -413,7 +436,7 @@ class ObjectDB:
             callback = partial(progress, "querying", len(remaining_oids))
             ret.extend(
                 wrap_iter(
-                    self.list_oids_exists(remaining_oids, jobs), callback
+                    self.list_oids_exists(remaining_oids, jobs=jobs), callback
                 )
             )
             return ret
