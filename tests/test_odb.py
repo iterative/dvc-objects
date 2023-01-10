@@ -185,7 +185,7 @@ def test_oids_exist_non_traverse_fs(mocker):
 
     oids = set(range(100))
     odb.oids_exist(oids)
-    object_exists.assert_called_with(oids, None)
+    object_exists.assert_called_with(oids, jobs=None)
     traverse.assert_not_called()
 
 
@@ -206,7 +206,9 @@ def test_oids_exist_less_oids_larger_fs(mocker):
         odb._max_estimation_size(oids) / pow(16, odb.fs.TRAVERSE_PREFIX_LEN)
     )
     assert max_oids < 2048
-    object_exists.assert_called_with(frozenset(range(max_oids, 1000)), None)
+    object_exists.assert_called_with(
+        frozenset(range(max_oids, 1000)), jobs=None
+    )
     traverse.assert_not_called()
 
 
@@ -231,28 +233,34 @@ def test_oids_exist_large_oids_larger_fs(mocker):
     object_exists.assert_not_called()
 
 
-def test_list_paths(mocker):
+def test_list_prefixes(mocker):
     odb = ObjectDB(FileSystem(), "/odb")
 
     walk_mock = mocker.patch.object(odb.fs, "find", return_value=[])
-    for _ in odb._list_paths():
+    for _ in odb._list_prefixes():
         pass  # pragma: no cover
-    walk_mock.assert_called_with("/odb", prefix=False)
+    walk_mock.assert_called_with("/odb", batch_size=None)
 
-    for _ in odb._list_paths(prefix="000"):
+    for _ in odb._list_prefixes(["000"]):
         pass  # pragma: no cover
-    walk_mock.assert_called_with("/odb/00/0", prefix=True)
+    walk_mock.assert_called_with("/odb/00/0", batch_size=None)
 
 
 def test_list_oids(mocker):
     # large remote, large local
     odb = ObjectDB(FileSystem(), "/odb")
-    mocker.patch.object(odb, "_list_paths", return_value=["12/34", "bar"])
+    mocker.patch.object(odb, "_list_prefixes", return_value=["12/34", "bar"])
     assert list(odb._list_oids()) == ["1234"]
 
 
-@pytest.mark.parametrize("prefix_len", [2, 3])
-def test_list_oids_traverse(mocker, prefix_len):
+@pytest.mark.parametrize(
+    "prefix_len, extra_prefixes",
+    [
+        (2, []),
+        (3, [f"{i:03x}" for i in range(1, 16)]),
+    ],
+)
+def test_list_oids_traverse(mocker, prefix_len, extra_prefixes):
     odb = ObjectDB(FileSystem(), "/odb")
 
     list_oids = mocker.patch.object(odb, "_list_oids", return_value=[])
@@ -264,13 +272,11 @@ def test_list_oids_traverse(mocker, prefix_len):
     # parallel traverse
     size = 256 / odb.fs._JOBS * odb.fs.LIST_OBJECT_PAGE_SIZE
     list(odb._list_oids_traverse(size, {0}))
-    for i in range(1, 16):
-        list_oids.assert_any_call(f"{i:0{odb.fs.TRAVERSE_PREFIX_LEN}x}")
-    for i in range(1, 256):
-        list_oids.assert_any_call(f"{i:02x}")
+    prefixes = [f"{i:02x}" for i in range(1, 256)] + extra_prefixes
+    list_oids.assert_any_call(prefixes=prefixes, jobs=None)
 
     # default traverse (small remote)
     size -= 1
     list_oids.reset_mock()
     list(odb._list_oids_traverse(size - 1, {0}))
-    list_oids.assert_called_with(None)
+    list_oids.assert_called_with(prefixes=None, jobs=None)
