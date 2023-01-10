@@ -1,10 +1,20 @@
 import itertools
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from functools import partial
 from io import BytesIO
-from typing import TYPE_CHECKING, BinaryIO, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    BinaryIO,
+    Collection,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 from .errors import ObjectDBPermissionError
 from .obj import Object
@@ -76,7 +86,7 @@ class ObjectDB:
         prefix, _ = self._oid_parts(short_oid)
         ret = [
             oid
-            for oid in self._list_oids(prefix=prefix)
+            for oid in self._list_oids(prefixes=[prefix])
             if oid.startswith(short_oid)
         ]
         if not ret:
@@ -164,14 +174,18 @@ class ObjectDB:
     def oid_to_path(self, oid) -> str:
         return self.fs.path.join(self.path, *self._oid_parts(oid))
 
-    def _list_paths(self, prefix: str = None):
-        prefix = prefix or ""
-        parts: "Tuple[str, ...]" = (self.path,)
-        if prefix:
-            parts = *parts, prefix[:2]
-        if len(prefix) > 2:
-            parts = *parts, prefix[2:]
-        yield from self.fs.find(self.fs.path.join(*parts), prefix=bool(prefix))
+    def _list_prefixes(
+        self, prefixes: Optional[Iterable[str]] = None
+    ) -> Iterator[str]:
+        if prefixes:
+            paths: Union[str, List[str]] = list(
+                map(self.oid_to_path, prefixes)
+            )
+            if len(paths) == 1:
+                paths = paths[0]
+        else:
+            paths = self.path
+        yield from self.fs.find(paths)
 
     def path_to_oid(self, path) -> str:
         parts = self.fs.path.parts(path)[-2:]
@@ -181,13 +195,16 @@ class ObjectDB:
 
         return "".join(parts)
 
-    def _list_oids(self, prefix=None):
+    def _list_oids(
+        self,
+        prefixes: Optional[Iterable[str]] = None,
+    ) -> Iterator[str]:
         """Iterate over oids in this fs.
 
         If `prefix` is specified, only oids which begin with `prefix`
         will be returned.
         """
-        for path in self._list_paths(prefix):
+        for path in self._list_prefixes(prefixes=prefixes):
             try:
                 yield self.path_to_oid(path)
             except ValueError:
@@ -195,9 +212,13 @@ class ObjectDB:
                     "'%s' doesn't look like a cache file, skipping", path
                 )
 
-    def _oids_with_limit(self, limit, prefix=None):
+    def _oids_with_limit(
+        self,
+        limit: int,
+        prefixes: Optional[Iterable[str]] = None,
+    ) -> Iterator[str]:
         count = 0
-        for oid in self._list_oids(prefix):
+        for oid in self._list_oids(prefixes=prefixes):
             yield oid
             count += 1
             if count > limit:
@@ -237,9 +258,11 @@ class ObjectDB:
                 yield oid
 
         if max_oids:
-            oids = self._oids_with_limit(max_oids / total_prefixes, prefix)
+            oids = self._oids_with_limit(
+                max_oids / total_prefixes, prefixes=[prefix]
+            )
         else:
-            oids = self._list_oids(prefix)
+            oids = self._list_oids(prefixes=[prefix])
 
         remote_oids = set(iter_with_pbar(oids))
         if remote_oids:
@@ -272,7 +295,7 @@ class ObjectDB:
             #
             # NOTE: this ends up re-fetching oids that were already
             # fetched during remote size estimation
-            traverse_prefixes = [None]
+            traverse_prefixes = None
         else:
             yield from remote_oids
             traverse_prefixes = [f"{i:02x}" for i in range(1, 256)]
@@ -282,9 +305,7 @@ class ObjectDB:
                     for i in range(1, pow(16, self.fs.TRAVERSE_PREFIX_LEN - 2))
                 ]
 
-        with ThreadPoolExecutor(max_workers=jobs or self.fs.jobs) as executor:
-            in_remote = executor.map(self._list_oids, traverse_prefixes)
-            yield from itertools.chain.from_iterable(in_remote)
+        yield from self._list_oids(prefixes=traverse_prefixes)
 
     def all(self, jobs=None):
         """Iterate over all oids in this fs.
@@ -298,15 +319,16 @@ class ObjectDB:
         remote_size, remote_oids = self._estimate_remote_size()
         return self._list_oids_traverse(remote_size, remote_oids, jobs=jobs)
 
-    def list_oids_exists(self, oids, jobs=None):
+    def list_oids_exists(
+        self, oids: Collection[str], jobs: Optional[int] = None
+    ):
         """Return list of the specified oids which exist in this fs.
         Hashes will be queried individually.
         """
         logger.debug(f"Querying {len(oids)} oids via object_exists")
-        with ThreadPoolExecutor(max_workers=jobs or self.fs.jobs) as executor:
-            paths = map(self.oid_to_path, oids)
-            in_remote = executor.map(self.fs.exists, paths)
-            yield from itertools.compress(oids, in_remote)
+        paths = list(map(self.oid_to_path, oids))
+        in_remote = self.fs.exists(paths)
+        yield from itertools.compress(oids, in_remote)
 
     def oids_exist(self, oids, jobs=None, progress=noop):
         """Check if the given oids are stored in the remote.
