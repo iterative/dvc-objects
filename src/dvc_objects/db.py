@@ -121,6 +121,7 @@ class ObjectDB:
         oid: str,
         hardlink: bool = False,
         callback: "Callback" = None,
+        check_exists: bool = True,
         **kwargs,
     ) -> int:
         from dvc_objects.fs import generic
@@ -129,7 +130,7 @@ class ObjectDB:
         if self.read_only:
             raise ObjectDBPermissionError("Cannot add to read-only ODB")
 
-        if self.exists(oid):
+        if check_exists and self.exists(oid):
             return 0
 
         self._init(self._oid_parts(oid)[0])
