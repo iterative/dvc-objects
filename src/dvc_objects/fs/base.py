@@ -1,7 +1,9 @@
+import asyncio
 import datetime
 import logging
 import os
 import shutil
+from functools import partial
 from multiprocessing import cpu_count
 from typing import (
     IO,
@@ -18,9 +20,10 @@ from typing import (
     overload,
 )
 
+from fsspec.asyn import get_loop
 from funcy import cached_property
 
-from ..executors import ThreadPoolExecutor
+from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK, Callback
 from .errors import RemoteMissingDepsError
 
@@ -304,8 +307,51 @@ class FileSystem:
     ) -> None:
         self.fs.cp_file(from_info, to_info, **kwargs)
 
-    def exists(self, path: AnyFSPath) -> bool:
-        return self.fs.exists(path)
+    @overload
+    def exists(
+        self,
+        path: AnyFSPath,
+        callback: "Callback" = ...,
+        batch_size: Optional[int] = ...,
+    ) -> bool:
+        ...
+
+    @overload
+    def exists(
+        self,
+        path: List[AnyFSPath],
+        callback: "Callback" = ...,
+        batch_size: Optional[int] = ...,
+    ) -> List[bool]:
+        ...
+
+    def exists(
+        self,
+        path: Union[AnyFSPath, List[AnyFSPath]],
+        callback: "Callback" = DEFAULT_CALLBACK,
+        batch_size: Optional[int] = None,
+    ) -> Union[bool, List[bool]]:
+        if isinstance(path, str):
+            return self.fs.exists(path)
+        callback.set_size(len(path))
+        jobs = batch_size or self.jobs
+        if self.fs.async_impl:
+            loop = get_loop()
+            fut = asyncio.run_coroutine_threadsafe(
+                batch_coros(
+                    [
+                        self.fs._exists(p)  # pylint: disable=protected-access
+                        for p in path
+                    ],
+                    batch_size=jobs,
+                    callback=callback,
+                ),
+                loop,
+            )
+            return fut.result()
+        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+        with executor:
+            return list(executor.map(self.fs.exists, path))
 
     def lexists(self, path: AnyFSPath) -> bool:
         return self.fs.lexists(path)
@@ -360,10 +406,35 @@ class FileSystem:
 
     def find(
         self,
-        path: AnyFSPath,
+        path: Union[AnyFSPath, List[AnyFSPath]],
         prefix: bool = False,  # pylint: disable=unused-argument
+        batch_size: Optional[int] = None,
+        **kwargs,
     ) -> Iterator[str]:
-        yield from self.fs.find(path)
+        if isinstance(path, str):
+            yield from self.fs.find(path)
+            return
+        jobs = batch_size or self.jobs
+        if self.fs.async_impl:
+            loop = get_loop()
+            fut = asyncio.run_coroutine_threadsafe(
+                batch_coros(
+                    [
+                        self.fs._find(p)  # pylint: disable=protected-access
+                        for p in path
+                    ],
+                    batch_size=jobs,
+                ),
+                loop,
+            )
+            for result in fut.result():
+                yield from result
+            return
+        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+        with executor:
+            find = partial(self.fs.find)
+            for result in executor.imap_unordered(find, path):
+                yield from result
 
     def mv(
         self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any
@@ -566,12 +637,21 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
     ) -> None:
         return None
 
-    def find(self, path: AnyFSPath, prefix: bool = False) -> Iterator[str]:
-        if prefix:
-            with_prefix = self.path.parent(path)
-            files = self.fs.find(with_prefix, prefix=self.path.parts(path)[-1])
-        else:
-            with_prefix = path
-            files = self.fs.find(path)
-
-        yield from files
+    def find(
+        self,
+        path: Union[AnyFSPath, List[AnyFSPath]],
+        prefix: bool = False,
+        batch_size: Optional[int] = None,  # pylint: disable=unused-argument
+        **kwargs,
+    ) -> Iterator[str]:
+        if isinstance(path, str):
+            paths = [path]
+        for path in paths:
+            if prefix:
+                with_prefix = self.path.parent(path)
+                yield from self.fs.find(
+                    with_prefix, prefix=self.path.parts(path)[-1]
+                )
+            else:
+                with_prefix = path
+                yield from self.fs.find(path)
