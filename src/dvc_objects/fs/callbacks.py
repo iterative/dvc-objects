@@ -6,7 +6,7 @@ import fsspec
 from funcy import cached_property
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Callable, TextIO, Union
+    from typing import Awaitable, BinaryIO, Callable, TextIO, Union
 
     from typing_extensions import ParamSpec
 
@@ -44,6 +44,17 @@ class Callback(fsspec.Callback):
 
         return wrapped
 
+    def wrap_coro(
+        self, fn: "Callable[_P, Awaitable[_R]]"
+    ) -> "Callable[_P, Awaitable[_R]]":
+        @wraps(fn)
+        async def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
+            res = await fn(*args, **kwargs)
+            self.relative_update()
+            return res
+
+        return wrapped
+
     def wrap_and_branch(self, fn: "Callable") -> "Callable":
         """
         Wraps a function, and pass a new child callback to it.
@@ -56,6 +67,21 @@ class Callback(fsspec.Callback):
             kw: Dict[str, Any] = dict(kwargs)
             with self.branch(path1, path2, kw):
                 return wrapped(path1, path2, **kw)
+
+        return func
+
+    def wrap_and_branch_coro(self, fn: "Callable") -> "Callable":
+        """
+        Wraps a coroutine, and pass a new child callback to it.
+        When the coroutine completes, we increment the parent callback by 1.
+        """
+        wrapped = self.wrap_coro(fn)
+
+        @wraps(fn)
+        async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+            kw: Dict[str, Any] = dict(kwargs)
+            with self.branch(path1, path2, kw):
+                return await wrapped(path1, path2, **kw)
 
         return func
 
