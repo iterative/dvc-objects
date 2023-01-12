@@ -110,7 +110,10 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         remove(path)
 
     def rm(self, path, recursive=False, maxdepth=None):
-        remove(path)
+        if isinstance(path, str):
+            path = [path]
+        for p in path:
+            remove(p)
 
     def cp_file(self, path1, path2, **kwargs):
         return self.copy(path1, path2, **kwargs)
