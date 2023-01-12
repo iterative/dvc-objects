@@ -1,8 +1,25 @@
+import asyncio
 import queue
 import sys
 from concurrent import futures
 from itertools import islice
-from typing import Any, Callable, Iterable, Iterator, Set, TypeVar
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Coroutine,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+)
+
+from .fs.callbacks import Callback
 
 _T = TypeVar("_T")
 
@@ -74,3 +91,56 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
         else:
             self.shutdown(wait=True)
         return False
+
+
+async def batch_coros(
+    coros: Sequence[Coroutine],
+    batch_size: Optional[int] = None,
+    callback: Optional[Callback] = None,
+    timeout: Optional[int] = None,
+    return_exceptions: bool = False,
+    nofiles: bool = False,
+) -> List[Any]:
+    """Run the given in coroutines in parallel.
+
+    The asyncio loop will be kept saturated with up to `batch_size` tasks in
+    the loop at a time.
+
+    Tasks are not guaranteed to run in order, but results are returned in the
+    original order.
+    """
+    from fsspec.asyn import _get_batch_size
+
+    if batch_size is None:
+        batch_size = _get_batch_size(nofiles=nofiles)
+    if batch_size == -1:
+        batch_size = len(coros)
+    assert batch_size > 0
+
+    def create_taskset(n: int) -> Dict[Awaitable, int]:
+        return {asyncio.create_task(coro): i for i, coro in islice(it, n)}
+
+    it: Iterator[Tuple[int, Coroutine]] = enumerate(coros)
+    tasks = create_taskset(batch_size)
+    results: Dict[int, Any] = {}
+    while tasks:
+        done, _pending = await asyncio.wait(
+            tasks.keys(), timeout=timeout, return_when=asyncio.FIRST_COMPLETED
+        )
+        if not done and timeout:
+            raise TimeoutError
+        for fut in done:
+            try:
+                result = fut.result()
+            except Exception as exc:  # pylint: disable=broad-except
+                if not return_exceptions:
+                    raise
+                result = exc
+            index = tasks.pop(fut)
+            results[index] = result
+            if callback is not None:
+                callback.relative_update()
+
+        tasks.update(create_taskset(len(done)))
+
+    return [results[k] for k in sorted(results)]
