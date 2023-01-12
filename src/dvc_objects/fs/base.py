@@ -378,8 +378,13 @@ class FileSystem:
     def rm_file(self, path: AnyFSPath) -> None:
         self.fs.rm_file(path)
 
-    def rm(self, path: AnyFSPath) -> None:
-        self.fs.rm(path, recursive=True)
+    def rm(
+        self,
+        path: Union[AnyFSPath, List[AnyFSPath]],
+        recursive: bool = False,
+        **kwargs,
+    ) -> None:
+        self.fs.rm(path, recursive=recursive, **kwargs)
 
     remove = rm
 

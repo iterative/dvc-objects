@@ -50,6 +50,16 @@ def test_local_fs_isfile(tmp_path):
     assert not fs.isfile(fspath(tmp_path / "not-existing-file"))
 
 
+def test_local_fs_rm(tmp_path):
+    (tmp_path / "file").write_text("file", encoding="utf8")
+    (tmp_path / "file2").write_text("file2", encoding="utf8")
+
+    fs = LocalFileSystem()
+    fs.remove([tmp_path / "file", tmp_path / "file2"])
+    assert not fs.exists(tmp_path / "file")
+    assert not fs.exists(tmp_path / "file2")
+
+
 def convert_to_sets(walk_results):
     return [
         (root, set(dirs), set(nondirs)) for root, dirs, nondirs in walk_results
