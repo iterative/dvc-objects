@@ -86,3 +86,7 @@ ignore-words-list = " "
 [tool.bandit]
 exclude_dirs = ["tests"]
 skips = ["B101"]
+
+[tool.ruff.flake8-tidy-imports]
+[tool.ruff.flake8-tidy-imports.banned-api]
+"funcy.cached_property".msg = "use `from dvc.utils.objects import cached_property` instead."

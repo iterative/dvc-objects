@@ -3,7 +3,8 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar, overload
 
 import fsspec
-from funcy import cached_property
+
+from dvc_objects.utils.objects import cached_property
 
 if TYPE_CHECKING:
     from typing import Awaitable, BinaryIO, Callable, TextIO, Union

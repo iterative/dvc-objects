@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import functools
 import logging
 import os
 import shutil
@@ -21,7 +22,8 @@ from typing import (
 )
 
 from fsspec.asyn import get_loop
-from funcy import cached_property
+
+from dvc_objects.utils.objects import cached_property
 
 from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK, Callback
@@ -33,7 +35,6 @@ if TYPE_CHECKING:
     from fsspec.spec import AbstractFileSystem
 
     from .path import Path
-
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ class FileSystem:
     def root_marker(self) -> str:
         return self.fs.root_marker
 
-    @cached_property
+    @functools.cached_property
     def path(self) -> "Path":
         from .path import Path
 
@@ -108,7 +109,7 @@ class FileSystem:
     def unstrip_protocol(self, path: str) -> str:
         return path
 
-    @cached_property
+    @functools.cached_property
     def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
         raise NotImplementedError
 
