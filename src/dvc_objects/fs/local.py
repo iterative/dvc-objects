@@ -36,10 +36,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         return self.lexists(path)
 
     def checksum(self, path) -> str:
-        from fsspec.utils import tokenize
-
-        st = os.stat(path)
-        return str(int(tokenize([st.st_ino, st.st_mtime, st.st_size]), 16))
+        return self.fs.checksum(path)
 
     def info(self, path, **kwargs):
         return self.fs.info(path)
