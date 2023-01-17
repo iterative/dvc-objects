@@ -56,8 +56,8 @@ def test_local_fs_rm(tmp_path):
 
     fs = LocalFileSystem()
     fs.remove([tmp_path / "file", tmp_path / "file2"])
-    assert not fs.exists(tmp_path / "file")
-    assert not fs.exists(tmp_path / "file2")
+    assert not fs.exists(fspath(tmp_path / "file"))
+    assert not fs.exists(fspath(tmp_path / "file2"))
 
 
 def convert_to_sets(walk_results):
