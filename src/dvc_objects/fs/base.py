@@ -394,15 +394,19 @@ class FileSystem:
         return not (self.is_symlink(path) or self.is_hardlink(path))
 
     @overload
-    def ls(self, path: AnyFSPath, detail: Literal[True]) -> "Iterator[Entry]":
+    def ls(
+        self, path: AnyFSPath, detail: Literal[True], **kwargs
+    ) -> "Iterator[Entry]":
         ...
 
     @overload
-    def ls(self, path: AnyFSPath, detail: Literal[False]) -> Iterator[str]:
+    def ls(
+        self, path: AnyFSPath, detail: Literal[False], **kwargs
+    ) -> Iterator[str]:
         ...
 
     def ls(self, path, detail=False, **kwargs):
-        return self.fs.ls(path, detail=detail)
+        return self.fs.ls(path, detail=detail, **kwargs)
 
     def find(
         self,
