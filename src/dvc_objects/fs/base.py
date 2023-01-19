@@ -655,6 +655,8 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
     ) -> Iterator[str]:
         if isinstance(path, str):
             paths = [path]
+        else:
+            paths = path
         for path in paths:
             if prefix:
                 with_prefix = self.path.parent(path)
