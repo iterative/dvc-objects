@@ -171,6 +171,7 @@ class ObjectDB:
             on_error(oid, exc)
 
         from_paths, to_oids = zip(*to_add)
+        jobs: Optional[int] = kwargs.get("batch_size", kwargs.get("jobs"))
         generic.transfer(
             fs,
             list(from_paths),
@@ -178,6 +179,7 @@ class ObjectDB:
             [self.oid_to_path(to_oid) for to_oid in to_oids],
             hardlink=hardlink,
             callback=callback,
+            batch_size=jobs,
             on_error=_on_error if on_error is not None else None,
         )
         return len(to_add) - failed
