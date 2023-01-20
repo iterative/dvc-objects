@@ -351,7 +351,7 @@ class FileSystem:
             return fut.result()
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
         with executor:
-            return list(executor.map(self.fs.exists, path))
+            return list(executor.map(callback.wrap_fn(self.fs.exists), path))
 
     def lexists(self, path: AnyFSPath) -> bool:
         return self.fs.lexists(path)
