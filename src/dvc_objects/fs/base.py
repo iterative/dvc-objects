@@ -463,8 +463,50 @@ class FileSystem:
 
     remove = rm
 
-    def info(self, path: AnyFSPath, **kwargs) -> "Entry":
-        return self.fs.info(path, **kwargs)
+    @overload
+    def info(
+        self,
+        path: AnyFSPath,
+        callback: "Callback" = ...,
+        batch_size: Optional[int] = ...,
+        **kwargs,
+    ) -> "Entry":
+        ...
+
+    @overload
+    def info(
+        self,
+        path: List[AnyFSPath],
+        callback: "Callback" = ...,
+        batch_size: Optional[int] = ...,
+    ) -> List["Entry"]:
+        ...
+
+    def info(self, path, callback=DEFAULT_CALLBACK, batch_size=None, **kwargs):
+        if isinstance(path, str):
+            return self.fs.info(path, **kwargs)
+        callback.set_size(len(path))
+        jobs = batch_size or self.jobs
+        if self.fs.async_impl:
+            loop = get_loop()
+            fut = asyncio.run_coroutine_threadsafe(
+                batch_coros(
+                    [
+                        self.fs._info(  # pylint: disable=protected-access
+                            p, **kwargs
+                        )
+                        for p in path
+                    ],
+                    batch_size=jobs,
+                    callback=callback,
+                ),
+                loop,
+            )
+            return fut.result()
+        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+        with executor:
+            func = partial(self.fs.info, **kwargs)
+            return list(executor.map(callback.wrap_fn(func), path))
 
     def mkdir(
         self, path: AnyFSPath, create_parents: bool = True, **kwargs: Any
