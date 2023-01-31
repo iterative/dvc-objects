@@ -134,16 +134,9 @@ class FileSystem:
 
     @classmethod
     def get_missing_deps(cls) -> List[str]:
-        import importlib
+        from importlib.util import find_spec
 
-        missing: List[str] = []
-        for package, module in cls.REQUIRES.items():
-            try:
-                importlib.import_module(module)
-            except ImportError:
-                missing.append(package)
-
-        return missing
+        return [pkg for pkg, mod in cls.REQUIRES.items() if not find_spec(mod)]
 
     def _check_requires(self, **kwargs):
         from .scheme import Schemes
