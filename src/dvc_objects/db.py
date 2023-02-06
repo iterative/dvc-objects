@@ -208,9 +208,11 @@ class ObjectDB:
             )
             if len(paths) == 1:
                 paths = paths[0]
+            prefix = True
         else:
             paths = self.path
-        yield from self.fs.find(paths, batch_size=jobs, prefix=True)
+            prefix = False
+        yield from self.fs.find(paths, batch_size=jobs, prefix=prefix)
 
     def path_to_oid(self, path) -> str:
         parts = self.fs.path.parts(path)[-2:]
