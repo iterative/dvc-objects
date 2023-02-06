@@ -15,6 +15,7 @@ from typing import (
     List,
     Literal,
     Optional,
+    Tuple,
     Union,
     cast,
     overload,
@@ -692,12 +693,41 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
             paths = [path]
         else:
             paths = path
-        for path in paths:
-            if prefix:
-                with_prefix = self.path.parent(path)
-                yield from self.fs.find(
-                    with_prefix, prefix=self.path.parts(path)[-1]
-                )
-            else:
-                with_prefix = path
-                yield from self.fs.find(path)
+
+        def _make_args(paths: List[AnyFSPath]) -> Iterator[Tuple[str, str]]:
+            for path in paths:
+                if prefix and not path.endswith(self.path.flavour.sep):
+                    parent = self.path.parent(path)
+                    yield parent, self.path.parts(path)[-1]
+                else:
+                    yield path, ""
+
+        args = list(_make_args(paths))
+        if len(args) == 1:
+            path, prefix = args[0]
+            yield from self.fs.find(path, prefix=prefix)
+            return
+
+        jobs = batch_size or self.jobs
+        if self.fs.async_impl:
+            loop = get_loop()
+            fut = asyncio.run_coroutine_threadsafe(
+                batch_coros(
+                    [
+                        self.fs._find(  # pylint: disable=protected-access
+                            path, prefix=prefix
+                        )
+                        for path, prefix in args
+                    ],
+                    batch_size=jobs,
+                ),
+                loop,
+            )
+            for result in fut.result():
+                yield from result
+            return
+        # NOTE: this is not parallelized yet since imap_unordered does not
+        # handle kwargs. We do not actually support any non-async object
+        # storages, so this can be addressed when it is actually needed
+        for path, prefix in args:
+            yield from self.fs.find(path, prefix=prefix)
