@@ -210,7 +210,7 @@ class ObjectDB:
                 paths = paths[0]
         else:
             paths = self.path
-        yield from self.fs.find(paths, batch_size=jobs)
+        yield from self.fs.find(paths, batch_size=jobs, prefix=True)
 
     def path_to_oid(self, path) -> str:
         parts = self.fs.path.parts(path)[-2:]
