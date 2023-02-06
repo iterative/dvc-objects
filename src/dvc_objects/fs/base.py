@@ -704,8 +704,8 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
 
         args = list(_make_args(paths))
         if len(args) == 1:
-            path, prefix = args[0]
-            yield from self.fs.find(path, prefix=prefix)
+            path, prefix_str = args[0]
+            yield from self.fs.find(path, prefix=prefix_str)
             return
 
         jobs = batch_size or self.jobs
@@ -715,9 +715,9 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
                 batch_coros(
                     [
                         self.fs._find(  # pylint: disable=protected-access
-                            path, prefix=prefix
+                            path, prefix=prefix_str
                         )
-                        for path, prefix in args
+                        for path, prefix_str in args
                     ],
                     batch_size=jobs,
                 ),
@@ -729,5 +729,5 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
         # NOTE: this is not parallelized yet since imap_unordered does not
         # handle kwargs. We do not actually support any non-async object
         # storages, so this can be addressed when it is actually needed
-        for path, prefix in args:
-            yield from self.fs.find(path, prefix=prefix)
+        for path, prefix_str in args:
+            yield from self.fs.find(path, prefix=prefix_str)

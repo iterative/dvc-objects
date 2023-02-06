@@ -239,11 +239,11 @@ def test_list_prefixes(mocker):
     walk_mock = mocker.patch.object(odb.fs, "find", return_value=[])
     for _ in odb._list_prefixes():
         pass  # pragma: no cover
-    walk_mock.assert_called_with("/odb", batch_size=None)
+    walk_mock.assert_called_with("/odb", batch_size=None, prefix=True)
 
     for _ in odb._list_prefixes(["000"]):
         pass  # pragma: no cover
-    walk_mock.assert_called_with("/odb/00/0", batch_size=None)
+    walk_mock.assert_called_with("/odb/00/0", batch_size=None, prefix=True)
 
 
 def test_list_oids(mocker):
