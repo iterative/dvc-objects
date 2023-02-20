@@ -97,6 +97,11 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         os.replace(tmp_file, rpath)
 
     def get_file(self, rpath, lpath, callback=None, **kwargs):
+        if self.isdir(rpath):
+            # emulating fsspec's localfs.get_file
+            self.makedirs(lpath, exist_ok=True)
+            return
+
         copyfile(rpath, lpath, callback=callback)
 
     def mv(self, path1, path2, **kwargs):
