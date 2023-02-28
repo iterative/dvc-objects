@@ -22,9 +22,7 @@ known_implementations = {
     },
     Schemes.GDRIVE: {
         "class": "dvc_gdrive.GDriveFileSystem",
-        "err": (
-            "gdrive is supported, but requires 'dvc-gdrive' to be installed"
-        ),
+        "err": ("gdrive is supported, but requires 'dvc-gdrive' to be installed"),
     },
     Schemes.GS: {
         "class": "dvc_gs.GSFileSystem",
@@ -56,21 +54,15 @@ known_implementations = {
     },
     Schemes.WEBDAV: {
         "class": "dvc_webdav.WebDAVFileSystem",
-        "err": (
-            "webdav is supported, but requires 'dvc-webdav' to be installed"
-        ),
+        "err": ("webdav is supported, but requires 'dvc-webdav' to be installed"),
     },
     Schemes.WEBDAVS: {
         "class": "dvc_webdav.WebDAVSFileSystem",
-        "err": (
-            "webdavs is supported, but requires 'dvc-webdav' to be installed"
-        ),
+        "err": ("webdavs is supported, but requires 'dvc-webdav' to be installed"),
     },
     Schemes.WEBHDFS: {
         "class": "dvc_webhdfs.WebHDFSFileSystem",
-        "err": (
-            "webhdfs is supported, but requires 'dvc-webhdfs' to be installed"
-        ),
+        "err": ("webhdfs is supported, but requires 'dvc-webhdfs' to be installed"),
     },
 }
 

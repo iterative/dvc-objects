@@ -33,9 +33,7 @@ def test_reflink(test_dir):
     assert dest.is_file()
     assert dest.read_bytes() == b"content"
 
-    stat_mode = src.stat().st_mode & (
-        stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
-    )
+    stat_mode = src.stat().st_mode & (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
     assert stat_mode == (0o666 & ~umask(0))
 
 

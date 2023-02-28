@@ -203,9 +203,7 @@ class ObjectDB:
         jobs: Optional[int] = None,
     ) -> Iterator[str]:
         if prefixes:
-            paths: Union[str, List[str]] = list(
-                map(self.oid_to_path, prefixes)
-            )
+            paths: Union[str, List[str]] = list(map(self.oid_to_path, prefixes))
             if len(paths) == 1:
                 paths = paths[0]
             prefix = True
@@ -236,9 +234,7 @@ class ObjectDB:
             try:
                 yield self.path_to_oid(path)
             except ValueError:
-                logger.debug(
-                    "'%s' doesn't look like a cache file, skipping", path
-                )
+                logger.debug("'%s' doesn't look like a cache file, skipping", path)
 
     def _oids_with_limit(
         self,
@@ -287,9 +283,7 @@ class ObjectDB:
                 yield oid
 
         if max_oids:
-            oids = self._oids_with_limit(
-                max_oids / total_prefixes, prefixes=[prefix]
-            )
+            oids = self._oids_with_limit(max_oids / total_prefixes, prefixes=[prefix])
         else:
             oids = self._list_oids(prefixes=[prefix])
 
@@ -403,9 +397,7 @@ class ObjectDB:
         always_traverse = getattr(self.fs, "_ALWAYS_TRAVERSE", False)
 
         oids = set(oids)
-        if (
-            len(oids) == 1 or not self.fs.CAN_TRAVERSE
-        ) and not always_traverse:
+        if (len(oids) == 1 or not self.fs.CAN_TRAVERSE) and not always_traverse:
             remote_oids = self.list_oids_exists(oids, jobs=jobs)
             callback = partial(progress, "querying", len(oids))
             return list(wrap_iter(remote_oids, callback))
@@ -423,9 +415,7 @@ class ObjectDB:
         # From testing with S3, for remotes with 1M+ files, object_exists is
         # faster until len(oids) is at least 10k~100k
         if remote_size > self.fs.TRAVERSE_THRESHOLD_SIZE:
-            traverse_weight = (
-                traverse_pages * self.fs.TRAVERSE_WEIGHT_MULTIPLIER
-            )
+            traverse_weight = traverse_pages * self.fs.TRAVERSE_WEIGHT_MULTIPLIER
         else:
             traverse_weight = traverse_pages
         if len(oids) < traverse_weight and not always_traverse:
@@ -439,15 +429,11 @@ class ObjectDB:
             ret = list(oids & remote_oids)
             callback = partial(progress, "querying", len(remaining_oids))
             ret.extend(
-                wrap_iter(
-                    self.list_oids_exists(remaining_oids, jobs=jobs), callback
-                )
+                wrap_iter(self.list_oids_exists(remaining_oids, jobs=jobs), callback)
             )
             return ret
 
         logger.debug(f"Querying '{len(oids)}' oids via traverse")
-        remote_oids = self._list_oids_traverse(
-            remote_size, remote_oids, jobs=jobs
-        )
+        remote_oids = self._list_oids_traverse(remote_size, remote_oids, jobs=jobs)
         callback = partial(progress, "querying", remote_size)
         return list(oids & set(wrap_iter(remote_oids, callback)))

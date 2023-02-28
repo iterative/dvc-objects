@@ -7,16 +7,7 @@ import sys
 import threading
 from concurrent import futures
 from contextlib import contextmanager, suppress
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Dict,
-    Iterator,
-    Optional,
-    Set,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set, Union
 
 from ..executors import ThreadPoolExecutor
 from . import system

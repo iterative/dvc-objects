@@ -1,13 +1,7 @@
 import os
 from os import fspath
 
-from dvc_objects.fs.system import (
-    hardlink,
-    inode,
-    is_hardlink,
-    is_symlink,
-    symlink,
-)
+from dvc_objects.fs.system import hardlink, inode, is_hardlink, is_symlink, symlink
 
 
 def test_inode(tmp_path):

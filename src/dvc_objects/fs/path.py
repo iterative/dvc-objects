@@ -133,13 +133,9 @@ class Path:
     def relpath(self, path: str, start: Optional[str] = None) -> str:
         if start is None:
             start = "."
-        return self.flavour.relpath(
-            self.abspath(path), start=self.abspath(start)
-        )
+        return self.flavour.relpath(self.abspath(path), start=self.abspath(start))
 
-    def relparts(
-        self, path: str, start: Optional[str] = None
-    ) -> Tuple[str, ...]:
+    def relparts(self, path: str, start: Optional[str] = None) -> Tuple[str, ...]:
         return self.parts(self.relpath(path, start=start))
 
     def as_posix(self, path: str) -> str:

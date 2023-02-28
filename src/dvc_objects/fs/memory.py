@@ -16,8 +16,6 @@ class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
                 self.fs.pseudo_dirs = [""]
 
     def __eq__(self, other):
-        return (
-            isinstance(other, type(self)) and self.fs.store is other.fs.store
-        )
+        return isinstance(other, type(self)) and self.fs.store is other.fs.store
 
     __hash__ = FileSystem.__hash__

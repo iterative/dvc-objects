@@ -206,9 +206,7 @@ def test_oids_exist_less_oids_larger_fs(mocker):
         odb._max_estimation_size(oids) / pow(16, odb.fs.TRAVERSE_PREFIX_LEN)
     )
     assert max_oids < 2048
-    object_exists.assert_called_with(
-        frozenset(range(max_oids, 1000)), jobs=None
-    )
+    object_exists.assert_called_with(frozenset(range(max_oids, 1000)), jobs=None)
     traverse.assert_not_called()
 
 
@@ -264,9 +262,7 @@ def test_list_oids_traverse(mocker, prefix_len, extra_prefixes):
     odb = ObjectDB(FileSystem(), "/odb")
 
     list_oids = mocker.patch.object(odb, "_list_oids", return_value=[])
-    mocker.patch.object(
-        odb, "path_to_oid", side_effect=lambda x: x
-    )  # pragma: no cover
+    mocker.patch.object(odb, "path_to_oid", side_effect=lambda x: x)  # pragma: no cover
     mocker.patch.object(odb.fs, "TRAVERSE_PREFIX_LEN", prefix_len)
 
     # parallel traverse

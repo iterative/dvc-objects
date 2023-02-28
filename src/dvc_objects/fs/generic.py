@@ -20,9 +20,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-TransferErrorHandler = Callable[
-    ["AnyFSPath", "AnyFSPath", BaseException], None
-]
+TransferErrorHandler = Callable[["AnyFSPath", "AnyFSPath", BaseException], None]
 
 
 def log_exceptions(func: Callable) -> Callable:
@@ -264,9 +262,7 @@ def _try_links(
 
         del links[0]
 
-    raise OSError(
-        errno.ENOTSUP, "no more link types left to try out"
-    ) from error
+    raise OSError(errno.ENOTSUP, "no more link types left to try out") from error
 
 
 def transfer(

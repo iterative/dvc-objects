@@ -29,11 +29,7 @@ class Object:
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return False
-        return (
-            self.path == other.path
-            and self.fs == other.fs
-            and self.oid == other.oid
-        )
+        return self.path == other.path and self.fs == other.fs and self.oid == other.oid
 
     def __hash__(self):
         return hash(
