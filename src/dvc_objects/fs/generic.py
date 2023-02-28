@@ -293,7 +293,7 @@ def transfer(
     # copy, the remaining copy operations will be batched.
     for i, (from_p, to_p) in enumerate(zip(from_path, to_path)):
         if links[0] == "copy":
-            return copy(
+            copy(
                 from_fs,
                 from_path[i:],
                 to_fs,
@@ -302,6 +302,7 @@ def transfer(
                 batch_size=batch_size,
                 on_error=on_error,
             )
+            continue
         try:
             _try_links(
                 links,
@@ -325,7 +326,7 @@ def transfer(
                 and isinstance(exc.__context__, FileExistsError)
             ):
                 logger.debug("'%s' file already exists, skipping", to_path)
-                return None
+                continue
 
             if on_error is not None:
                 on_error(from_p, to_p, exc)
