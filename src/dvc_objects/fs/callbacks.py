@@ -103,9 +103,7 @@ class Callback(fsspec.Callback):
         return super().absolute_update(value)
 
     @classmethod
-    def as_callback(
-        cls, maybe_callback: Optional["Callback"] = None
-    ) -> "Callback":
+    def as_callback(cls, maybe_callback: Optional["Callback"] = None) -> "Callback":
         if maybe_callback is None:
             return DEFAULT_CALLBACK
         return maybe_callback

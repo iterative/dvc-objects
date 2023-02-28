@@ -37,9 +37,7 @@ class Tqdm(tqdm):
         "{postfix[info]}{n_fmt}/{total_fmt}"
         " [{elapsed}<{remaining}, {rate_fmt:>11}]"
     )
-    BAR_FMT_NOTOTAL = (
-        "{desc}{bar:b}|{postfix[info]}{n_fmt} [{elapsed}, {rate_fmt:>11}]"
-    )
+    BAR_FMT_NOTOTAL = "{desc}{bar:b}|{postfix[info]}{n_fmt} [{elapsed}, {rate_fmt:>11}]"
     BYTES_DEFAULTS = {
         "unit": "B",
         "unit_scale": True,
@@ -104,9 +102,7 @@ class Tqdm(tqdm):
         if bar_format is None:
             if self.__len__():
                 self.bar_format = (
-                    self.BAR_FMT_DEFAULT_NESTED
-                    if self.pos
-                    else self.BAR_FMT_DEFAULT
+                    self.BAR_FMT_DEFAULT_NESTED if self.pos else self.BAR_FMT_DEFAULT
                 )
             else:
                 self.bar_format = self.BAR_FMT_NOTOTAL
@@ -148,9 +144,7 @@ class Tqdm(tqdm):
         d = super().format_dict
         ncols = d["ncols"] or 80
         # assumes `bar_format` has max one of ("ncols_desc" & "ncols_info")
-        ncols_left = (
-            ncols - len(self.format_meter(ncols_desc=1, ncols_info=1, **d)) + 1
-        )
+        ncols_left = ncols - len(self.format_meter(ncols_desc=1, ncols_info=1, **d)) + 1
         ncols_left = max(ncols_left, 0)
         if ncols_left:
             d["ncols_desc"] = d["ncols_info"] = ncols_left

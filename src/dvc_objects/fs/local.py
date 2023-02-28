@@ -61,9 +61,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             topdown=topdown,
         ):
             if detail:
-                dirs_dict = {
-                    name: self.info(os.path.join(root, name)) for name in dirs
-                }
+                dirs_dict = {name: self.info(os.path.join(root, name)) for name in dirs}
                 files_dict = {
                     name: self.info(os.path.join(root, name)) for name in files
                 }

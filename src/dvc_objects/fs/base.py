@@ -209,9 +209,7 @@ class FileSystem:
         on_error: Literal["raise", "omit", "return"] = "raise",
         **kwargs: Any,
     ) -> Union[bytes, Dict[AnyFSPath, bytes]]:
-        return self.fs.cat(
-            path, recursive=recursive, on_error=on_error, **kwargs
-        )
+        return self.fs.cat(path, recursive=recursive, on_error=on_error, **kwargs)
 
     def cat_ranges(
         self,
@@ -221,9 +219,7 @@ class FileSystem:
         max_gap: int = None,
         **kwargs,
     ) -> List[bytes]:
-        return self.fs.cat_ranges(
-            paths, starts, ends, max_gap=max_gap, **kwargs
-        )
+        return self.fs.cat_ranges(paths, starts, ends, max_gap=max_gap, **kwargs)
 
     def cat_file(
         self,
@@ -284,9 +280,7 @@ class FileSystem:
     ) -> None:
         return self.fs.pipe(path, value=value, **kwargs)
 
-    def touch(
-        self, path: AnyFSPath, truncate: bool = True, **kwargs: Any
-    ) -> None:
+    def touch(self, path: AnyFSPath, truncate: bool = True, **kwargs: Any) -> None:
         return self.fs.touch(path, truncate=truncate, **kwargs)
 
     def checksum(self, path: AnyFSPath) -> str:
@@ -296,9 +290,7 @@ class FileSystem:
         self.makedirs(self.path.parent(to_info))
         self.fs.copy(from_info, to_info)
 
-    def cp_file(
-        self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any
-    ) -> None:
+    def cp_file(self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any) -> None:
         self.fs.cp_file(from_info, to_info, **kwargs)
 
     @overload
@@ -388,15 +380,11 @@ class FileSystem:
         return not (self.is_symlink(path) or self.is_hardlink(path))
 
     @overload
-    def ls(
-        self, path: AnyFSPath, detail: Literal[True], **kwargs
-    ) -> "Iterator[Entry]":
+    def ls(self, path: AnyFSPath, detail: Literal[True], **kwargs) -> "Iterator[Entry]":
         ...
 
     @overload
-    def ls(
-        self, path: AnyFSPath, detail: Literal[False], **kwargs
-    ) -> Iterator[str]:
+    def ls(self, path: AnyFSPath, detail: Literal[False], **kwargs) -> Iterator[str]:
         ...
 
     def ls(self, path, detail=False, **kwargs):
@@ -434,9 +422,7 @@ class FileSystem:
             for result in executor.imap_unordered(find, path):
                 yield from result
 
-    def mv(
-        self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any
-    ) -> None:
+    def mv(self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any) -> None:
         self.fs.mv(from_info, to_info)
 
     move = mv
@@ -486,9 +472,7 @@ class FileSystem:
             fut = asyncio.run_coroutine_threadsafe(
                 batch_coros(
                     [
-                        self.fs._info(  # pylint: disable=protected-access
-                            p, **kwargs
-                        )
+                        self.fs._info(p, **kwargs)  # pylint: disable=protected-access
                         for p in path
                     ],
                     batch_size=jobs,
@@ -525,9 +509,7 @@ class FileSystem:
             self.upload_fobj(stream, to_info, size=size)
         else:
             assert isinstance(from_file, str)
-            self.fs.put_file(
-                os.fspath(from_file), to_info, callback=callback, **kwargs
-            )
+            self.fs.put_file(os.fspath(from_file), to_info, callback=callback, **kwargs)
         self.fs.invalidate_cache(self.path.parent(to_info))
 
     def get_file(
@@ -631,9 +613,7 @@ class FileSystem:
                 return localfs.makedirs(to_info, exist_ok=True)
 
             to_infos = [
-                localfs.path.join(
-                    to_info, *self.path.relparts(info, from_info)
-                )
+                localfs.path.join(to_info, *self.path.relparts(info, from_info))
                 for info in from_infos
             ]
 
@@ -660,9 +640,7 @@ class FileSystem:
     def modified(self, path: AnyFSPath) -> datetime.datetime:
         return self.fs.modified(path)
 
-    def sign(
-        self, path: AnyFSPath, expiration: int = 100, **kwargs: Any
-    ) -> str:
+    def sign(self, path: AnyFSPath, expiration: int = 100, **kwargs: Any) -> str:
         return self.fs.sign(path, expiration=expiration, **kwargs)
 
 

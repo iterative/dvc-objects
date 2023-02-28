@@ -3,9 +3,7 @@ import pytest
 from dvc_objects.fs.callbacks import DEFAULT_CALLBACK, Callback
 
 
-@pytest.mark.parametrize(
-    "api", ["set_size", "relative_update", "absolute_update"]
-)
+@pytest.mark.parametrize("api", ["set_size", "relative_update", "absolute_update"])
 @pytest.mark.parametrize(
     "callback_factory, kwargs",
     [

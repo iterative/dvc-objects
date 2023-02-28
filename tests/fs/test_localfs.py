@@ -6,9 +6,7 @@ import pytest
 from dvc_objects.fs.local import LocalFileSystem
 
 
-@pytest.mark.parametrize(
-    "path, contents", [("file", "foo"), ("тест", "проверка")]
-)
+@pytest.mark.parametrize("path, contents", [("file", "foo"), ("тест", "проверка")])
 def test_local_fs_open(tmp_path, path, contents):
     file = tmp_path / path
     file.write_text(contents, encoding="utf8")
@@ -61,9 +59,7 @@ def test_local_fs_rm(tmp_path):
 
 
 def convert_to_sets(walk_results):
-    return [
-        (root, set(dirs), set(nondirs)) for root, dirs, nondirs in walk_results
-    ]
+    return [(root, set(dirs), set(nondirs)) for root, dirs, nondirs in walk_results]
 
 
 @pytest.fixture
@@ -74,16 +70,13 @@ def dir_path(tmp_path):
         ("тест", "проверка"),
         (
             "code.py",
-            "import sys\nimport shutil\n"
-            "shutil.copyfile(sys.argv[1], sys.argv[2])",
+            "import sys\nimport shutil\n" "shutil.copyfile(sys.argv[1], sys.argv[2])",
         ),
     ]:
         (tmp_path / file).write_text(contents, encoding="utf8")
     (tmp_path / "data" / "sub").mkdir(parents=True)
     (tmp_path / "data" / "file").write_text("file", encoding="utf8")
-    (tmp_path / "data" / "sub" / "file").write_text(
-        "sub_file", encoding="utf8"
-    )
+    (tmp_path / "data" / "sub" / "file").write_text("sub_file", encoding="utf8")
     return tmp_path
 
 
