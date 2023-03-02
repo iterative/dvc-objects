@@ -302,7 +302,7 @@ def transfer(
                 batch_size=batch_size,
                 on_error=on_error,
             )
-            continue
+            return
         try:
             _try_links(
                 links,
