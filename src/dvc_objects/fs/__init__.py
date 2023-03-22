@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Iterator, Type
 from urllib.parse import urlparse
@@ -78,7 +77,7 @@ def merge_filesystem_implementations(known_implementations, exposed_implementati
     for scheme, implementation in exposed_implementations.items():
         if scheme in all_implementations:
             raise SchemeCollisionError(
-                f"{implementation} attempted to use {scheme=} but this is already in use."
+                f"{implementation} tried to use {scheme=} but this is already in use."
             )
         all_implementations[scheme] = implementation
     return all_implementations
@@ -121,6 +120,8 @@ filesystem_implementations = merge_filesystem_implementations(
     known_implementations, exposed_implementations
 )
 registry = Registry(filesystem_implementations)
+
+a = 1
 
 
 def get_fs_cls(remote_conf, cls=None, scheme=None):
@@ -180,4 +181,5 @@ def as_filesystem(
         (fs_cls,),
         {"PARAM_CHECKSUM": checksum, "protocol": protos[0]},
     )
+
     return new_subclass(fs=fs, **fs_args)

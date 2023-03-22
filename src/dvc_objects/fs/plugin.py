@@ -1,4 +1,3 @@
-__all__ = ("exposed_plugins",)
 import importlib
 import inspect
 import logging
@@ -10,6 +9,8 @@ from .base import FileSystem
 from .errors import SchemeCollisionError
 
 logger = logging.getLogger(__name__)
+
+EXPOSED_IMPLEMENTATIONS = "exposed_implementations"
 
 
 def _import_fsplugin_module() -> Optional[ModuleType]:
@@ -35,18 +36,18 @@ def discover_filesystem_plugins() -> Dict[str, Any]:
     if plugin_module is None:
         return None
     all_exposed_implementations = {}
-    print(plugin_module)
-    for importer, modname, ispkg in pkgutil.iter_modules(
+    for _, modname, _ in pkgutil.iter_modules(
         path=plugin_module.__path__, prefix=plugin_module.__name__ + "."
     ):
         plugin_module = importlib.import_module(modname)
-        if "exposed_implementations" in plugin_module.__dict__:
-            _exposed_implementations = getattr(plugin_module, "exposed_implementations")
+        if EXPOSED_IMPLEMENTATIONS in plugin_module.__dict__:
+            _exposed_implementations = getattr(plugin_module, EXPOSED_IMPLEMENTATIONS)
         for scheme, implementation in _exposed_implementations.items():
-            # Check exposed implementation schema don't collide with eachother.
+            # Check exposed implementation schema don't collide with each other.
             if scheme in all_exposed_implementations:
                 raise SchemeCollisionError(
-                    f"{implementation} is trying to use {scheme=}, but this is already in use by {all_exposed_implementations[scheme]}."
+                    f"{implementation} tried to use {scheme=},"
+                    f"already in use by {all_exposed_implementations[scheme]}."
                 )
             all_exposed_implementations[scheme] = implementation
     return all_exposed_implementations
