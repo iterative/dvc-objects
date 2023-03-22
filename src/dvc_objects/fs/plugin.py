@@ -19,7 +19,7 @@ def _import_fsplugin_module() -> Optional[ModuleType]:
         filesystem_plugins = importlib.import_module("dvc_fs_plugins")
         return filesystem_plugins
     except ImportError:
-        return
+        return None
 
 
 def _is_fsplugin(obj: Any) -> bool:
@@ -27,7 +27,7 @@ def _is_fsplugin(obj: Any) -> bool:
     return inspect.isclass(obj) and issubclass(obj, FileSystem)
 
 
-def discover_filesystem_plugins() -> Dict[str, Any]:
+def discover_filesystem_plugins() -> Optional[Dict[str, Any]]:
     """Find custom DVC FileSystem plugins.
 
     Custom DVC FileSystem Plugins can be implemented as in the example...
@@ -35,7 +35,7 @@ def discover_filesystem_plugins() -> Dict[str, Any]:
     plugin_module = _import_fsplugin_module()
     if plugin_module is None:
         return None
-    all_exposed_implementations = {}
+    all_exposed_implementations: Dict[str, Dict[str, str]] = {}
     for _, modname, _ in pkgutil.iter_modules(
         path=plugin_module.__path__, prefix=plugin_module.__name__ + "."
     ):
