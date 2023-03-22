@@ -1,10 +1,13 @@
+import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Iterator, Type
 from urllib.parse import urlparse
 
 from . import generic  # noqa: F401
+from .errors import SchemeCollisionError
 from .local import LocalFileSystem, localfs  # noqa: F401
 from .memory import MemoryFileSystem  # noqa: F401
+from .plugin import exposed_implementations
 from .scheme import Schemes
 
 if TYPE_CHECKING:
@@ -67,6 +70,20 @@ known_implementations = {
 }
 
 
+def merge_filesystem_implementations(known_implementations, exposed_implementations):
+    """Merge existing implementations with exposed implementations from plugins."""
+    all_implementations = known_implementations
+    if exposed_implementations is None:
+        return all_implementations
+    for scheme, implementation in exposed_implementations.items():
+        if scheme in all_implementations:
+            raise SchemeCollisionError(
+                f"{implementation} attempted to use {scheme=} but this is already in use."
+            )
+        all_implementations[scheme] = implementation
+    return all_implementations
+
+
 def _import_class(cls: str):
     """Take a string FQP and return the imported class or identifier
 
@@ -100,7 +117,10 @@ class Registry(Mapping):
         return len(self._registry)
 
 
-registry = Registry(known_implementations)
+filesystem_implementations = merge_filesystem_implementations(
+    known_implementations, exposed_implementations
+)
+registry = Registry(filesystem_implementations)
 
 
 def get_fs_cls(remote_conf, cls=None, scheme=None):

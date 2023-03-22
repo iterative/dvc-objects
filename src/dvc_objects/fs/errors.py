@@ -27,3 +27,7 @@ class RemoteMissingDepsError(Exception):
         super().__init__(
             f"filesystem for '{protocol}': '{type(fs)}' missing dependencies"
         )
+
+
+class SchemeCollisionError(Exception):
+    ...
