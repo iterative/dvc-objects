@@ -69,12 +69,12 @@ known_implementations = {
 }
 
 
-def merge_filesystem_implementations(known_implementations, exposed_implementations):
-    """Merge existing implementations with exposed implementations from plugins."""
-    all_implementations = known_implementations
+def merge_filesystem_implementations(existing_implementations, new_implementations):
+    """Merge existing implementations with new implementations from plugins."""
+    all_implementations = existing_implementations
     if exposed_implementations is None:
         return all_implementations
-    for scheme, implementation in exposed_implementations.items():
+    for scheme, implementation in new_implementations.items():
         if scheme in all_implementations:
             raise SchemeCollisionError(
                 f"{implementation} tried to use {scheme=} but this is already in use."
