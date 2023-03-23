@@ -69,20 +69,6 @@ known_implementations = {
 }
 
 
-def merge_filesystem_implementations(existing_implementations, new_implementations):
-    """Merge existing implementations with new implementations from plugins."""
-    all_implementations = existing_implementations
-    if exposed_implementations is None:
-        return all_implementations
-    for scheme, implementation in new_implementations.items():
-        if scheme in all_implementations:
-            raise SchemeCollisionError(
-                f"{implementation} tried to use {scheme=} but this is already in use."
-            )
-        all_implementations[scheme] = implementation
-    return all_implementations
-
-
 def _import_class(cls: str):
     """Take a string FQP and return the imported class or identifier
 
@@ -116,12 +102,23 @@ class Registry(Mapping):
         return len(self._registry)
 
 
-filesystem_implementations = merge_filesystem_implementations(
+def merge_filesystem_implementations(existing_implementations, new_implementations):
+    """Safely merge existing implementations with plugin implementations."""
+    if exposed_implementations is None:
+        return existing_implementations
+    for scheme, implementation in new_implementations.items():
+        if scheme in existing_implementations:
+            raise SchemeCollisionError(
+                f"Plugin tried to use {scheme=} but this is already in use."
+            )
+        existing_implementations[scheme] = implementation
+    return existing_implementations
+
+
+known_implementations = merge_filesystem_implementations(
     known_implementations, exposed_implementations
 )
-registry = Registry(filesystem_implementations)
-
-a = 1
+registry = Registry(known_implementations)
 
 
 def get_fs_cls(remote_conf, cls=None, scheme=None):
@@ -181,5 +178,4 @@ def as_filesystem(
         (fs_cls,),
         {"PARAM_CHECKSUM": checksum, "protocol": protos[0]},
     )
-
     return new_subclass(fs=fs, **fs_args)
