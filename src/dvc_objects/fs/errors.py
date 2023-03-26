@@ -31,7 +31,3 @@ class RemoteMissingDepsError(Exception):
 
 class SchemeCollisionError(Exception):
     ...
-
-
-class InvalidPluginError(Exception):
-    ...

@@ -2,11 +2,12 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Iterator, Type
 from urllib.parse import urlparse
 
+from importlib_metadata import entry_points
+
 from . import generic  # noqa: F401
 from .errors import SchemeCollisionError
 from .local import LocalFileSystem, localfs  # noqa: F401
 from .memory import MemoryFileSystem  # noqa: F401
-from .plugin import exposed_implementations
 from .scheme import Schemes
 
 if TYPE_CHECKING:
@@ -84,6 +85,44 @@ def _import_class(cls: str):
 class Registry(Mapping):
     def __init__(self, reg) -> None:
         self._registry = reg
+        self._custom_schemes = []
+
+    @property
+    def custom_schemes(self):
+        """Return the names of FileSystem schemes from plugins."""
+        return self._custom_schemes
+
+    def register_plugins(self):
+        """Add custom FileSystem implementations to the registry.
+
+        Custom FileSystem implementations are discovered using entrypoints
+        from installed packages.
+
+        An example `setup.py` for a package containing a custom FileSystem
+        implementation looks like:
+        ```
+        from setuptools import setup
+
+        setup(
+            # ...,
+            entry_points = {
+                'dvc_objects.fs_plugins': [
+                    'custom = my_package.MyCustomFileSystem'
+                ]
+            }
+        )
+        ```
+        which would make the `custom` protocol available to DVC.
+        e.g. `dvc remote add remote custom://url/for/custom/fs`
+        """
+        for entrypoint in entry_points(group="dvc_objects.fs_plugins"):
+            if entrypoint.name in self._registry:
+                raise SchemeCollisionError(
+                    f"Plugin: {entrypoint.value} tried to use scheme={entrypoint.name}"
+                    "but this is already in use."
+                )
+            self._custom_schemes.append(entrypoint.name)
+            self._registry[entrypoint.name] = {"class": entrypoint.value}
 
     def __getitem__(self, key: str) -> Type["FileSystem"]:
         entry = self._registry.get(key) or self._registry[Schemes.LOCAL]
@@ -102,23 +141,8 @@ class Registry(Mapping):
         return len(self._registry)
 
 
-def merge_filesystem_implementations(existing_implementations, new_implementations):
-    """Safely merge existing implementations with plugin implementations."""
-    if exposed_implementations is None:
-        return existing_implementations
-    for scheme, implementation in new_implementations.items():
-        if scheme in existing_implementations:
-            raise SchemeCollisionError(
-                f"Plugin tried to use {scheme=} but this is already in use."
-            )
-        existing_implementations[scheme] = implementation
-    return existing_implementations
-
-
-known_implementations = merge_filesystem_implementations(
-    known_implementations, exposed_implementations
-)
 registry = Registry(known_implementations)
+registry.register_plugins()
 
 
 def get_fs_cls(remote_conf, cls=None, scheme=None):
