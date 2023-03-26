@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Iterator, Type
+from typing import TYPE_CHECKING, Iterator, List, Type
 from urllib.parse import urlparse
 
 from importlib_metadata import entry_points
@@ -85,10 +85,10 @@ def _import_class(cls: str):
 class Registry(Mapping):
     def __init__(self, reg) -> None:
         self._registry = reg
-        self._custom_schemes = []
+        self._custom_schemes: List[str] = []
 
     @property
-    def custom_schemes(self):
+    def custom_schemes(self) -> List[str]:
         """Return the names of FileSystem schemes from plugins."""
         return self._custom_schemes
 
@@ -118,8 +118,8 @@ class Registry(Mapping):
         for entrypoint in entry_points(group="dvc_objects.fs_plugins"):
             if entrypoint.name in self._registry:
                 raise SchemeCollisionError(
-                    f"Plugin: {entrypoint.value} tried to use scheme={entrypoint.name}"
-                    "but this is already in use."
+                    f"Plugin: {entrypoint.value} tried to use scheme={entrypoint.name},"
+                    "\tbut this is already in use."
                 )
             self._custom_schemes.append(entrypoint.name)
             self._registry[entrypoint.name] = {"class": entrypoint.value}
