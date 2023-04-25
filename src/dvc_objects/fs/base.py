@@ -62,13 +62,19 @@ class LinkError(OSError):
 def check_required_version(
     pkg: str, dist: str = "dvc_objects", log_level=logging.WARNING
 ):
-    from importlib import metadata as m
+    from importlib import metadata
 
-    from packaging.requirements import Requirement
+    from packaging.requirements import InvalidRequirement, Requirement
 
-    reqs = {r.name: r.specifier for r in map(Requirement, m.requires(dist))}
+    try:
+        reqs = {
+            r.name: r.specifier for r in map(Requirement, metadata.requires(dist) or [])
+        }
+        version = metadata.version(pkg)
+    except (metadata.PackageNotFoundError, InvalidRequirement):
+        return
+
     specifier = reqs.get(pkg)
-    version = m.version(pkg)
     if specifier and version and version not in specifier:
         logger.log(
             log_level,
