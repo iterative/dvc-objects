@@ -22,7 +22,7 @@ from typing import (
 )
 
 from fsspec.asyn import get_loop
-from funcy import cached_property, once
+from funcy import cached_property, once_per_args
 
 from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK, Callback
@@ -58,7 +58,7 @@ class LinkError(OSError):
         )
 
 
-@once
+@once_per_args
 def check_required_version(
     pkg: str, dist: str = "dvc_objects", log_level=logging.WARNING
 ):
