@@ -172,6 +172,9 @@ class ObjectDB:
 
         from_paths, to_oids = zip(*to_add)
         jobs: Optional[int] = kwargs.get("batch_size", kwargs.get("jobs"))
+
+        callback.set_size(len(from_paths))
+
         generic.transfer(
             fs,
             list(from_paths),
