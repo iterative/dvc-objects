@@ -288,7 +288,6 @@ def transfer(
     else:
         links = links or ["reflink", "copy"]
 
-    callback.set_size(len(from_path))
     # Try to link files sequentially. If/when the only remaining link type is
     # copy, the remaining copy operations will be batched.
     for i, (from_p, to_p) in enumerate(zip(from_path, to_path)):
