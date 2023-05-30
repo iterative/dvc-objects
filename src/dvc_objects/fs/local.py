@@ -179,7 +179,7 @@ class LocalFileSystem(FileSystem):
     sep = os.sep
 
     protocol = "local"
-    PARAM_CHECKSUM = "md5"
+    PARAM_CHECKSUM = "md5raw"
     PARAM_PATH = "path"
     TRAVERSE_PREFIX_LEN = 2
 

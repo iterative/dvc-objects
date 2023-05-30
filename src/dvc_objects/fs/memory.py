@@ -3,7 +3,7 @@ from .base import FileSystem
 
 class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
     protocol = "memory"
-    PARAM_CHECKSUM = "md5"
+    PARAM_CHECKSUM = "md5raw"
 
     def __init__(self, global_store=True, fs=None, **kwargs):
         super().__init__(fs=fs, **kwargs)

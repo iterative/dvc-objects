@@ -114,7 +114,7 @@ def get_fs_cls(remote_conf, cls=None, scheme=None):
 
 def as_filesystem(
     fs: "AbstractFileSystem",
-    checksum: str = "md5",
+    checksum: str = "md5raw",
     object_based: bool = False,
     **fs_args,
 ) -> "FileSystem":
