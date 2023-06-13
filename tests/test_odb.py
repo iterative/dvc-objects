@@ -143,10 +143,16 @@ def test_get(memfs):
 def test_path_to_oid():
     odb = ObjectDB(FileSystem(), "/odb")
 
-    assert odb.path_to_oid("/12/34") == "1234"
+    with pytest.raises(ValueError):
+        assert odb.path_to_oid("/12/34") == "1234"
+
     assert odb.path_to_oid("/odb/12/34") == "1234"
-    assert odb.path_to_oid("/odb/12/34/56") == "3456"
-    assert odb.path_to_oid("/odb/12/34/abcde12") == "34abcde12"
+
+    with pytest.raises(ValueError):
+        assert odb.path_to_oid("/odb/12/34/56")
+
+    with pytest.raises(ValueError):
+        assert odb.path_to_oid("/odb/12/34/abcde12")
 
     with pytest.raises(ValueError):
         odb.path_to_oid("bar")
@@ -247,7 +253,7 @@ def test_list_prefixes(mocker):
 def test_list_oids(mocker):
     # large remote, large local
     odb = ObjectDB(FileSystem(), "/odb")
-    mocker.patch.object(odb, "_list_prefixes", return_value=["12/34", "bar"])
+    mocker.patch.object(odb, "_list_prefixes", return_value=["/odb/12/34", "/odb/bar"])
     assert list(odb._list_oids()) == ["1234"]
 
 

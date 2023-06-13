@@ -216,7 +216,8 @@ class ObjectDB:
         yield from self.fs.find(paths, batch_size=jobs, prefix=prefix)
 
     def path_to_oid(self, path) -> str:
-        parts = self.fs.path.parts(path)[-2:]
+        self_parts = self.fs.path.parts(self.path)
+        parts = self.fs.path.parts(path)[len(self_parts) :]
 
         if not (len(parts) == 2 and parts[0] and len(parts[0]) == 2):
             raise ValueError(f"Bad cache file path '{path}'")
