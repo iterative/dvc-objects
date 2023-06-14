@@ -62,10 +62,9 @@ class ObjectDB:
         if self._dirs is None:
             self._dirs = set()
             with suppress(FileNotFoundError, NotImplementedError):
-                self._dirs = {
-                    self.fs.path.name(path)
-                    for path in self.fs.ls(self.path, detail=False)
-                }
+                paths = self.fs.ls(self.path, detail=False)
+                if paths:
+                    self._dirs = {self.fs.path.name(path) for path in paths}
 
         if dname in self._dirs:
             return

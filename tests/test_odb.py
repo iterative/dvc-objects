@@ -48,6 +48,16 @@ def test_odb_add(memfs):
     assert memfs.cat_file("/odb/12/34") == b"foo"
 
 
+def test_odb_add_when_ls_returns_none(memfs, mocker):
+    """https://github.com/iterative/dvc/issues/9607"""
+    memfs.pipe({"foo": b"foo", "bar": b"bar"})
+    mocker.patch.object(memfs, "ls", return_value=None)
+
+    odb = ObjectDB(memfs, "/odb")
+    odb.add("/foo", memfs, "1234")
+    assert odb.exists("1234")
+
+
 def test_delete(memfs):
     memfs.pipe({"foo": b"foo", "bar": b"bar"})
 
