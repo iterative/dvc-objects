@@ -136,6 +136,25 @@ class FileSystem:
     def unstrip_protocol(self, path: str) -> str:
         return path
 
+    def _patch_glob(
+        self,
+        from_info: str,
+        to_info: str,
+        from_infos: List[str],
+    ) -> Tuple[List[str], List[str]]:
+        from .local import localfs
+
+        patched_from_infos = [path.replace("[", "*") for path in from_infos]
+
+        to_infos = [
+            localfs.path.join(
+                to_info, *self.path.relparts(info.replace("*", "["), from_info)
+            )
+            for info in from_infos
+        ]
+
+        return patched_from_infos, to_infos
+
     @cached_property
     def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
         raise NotImplementedError
@@ -637,13 +656,11 @@ class FileSystem:
                 return get_file(from_info, to_info)
 
             from_infos = list(self.find(from_info))
+
             if not from_infos:
                 return localfs.makedirs(to_info, exist_ok=True)
-
-            to_infos = [
-                localfs.path.join(to_info, *self.path.relparts(info, from_info))
-                for info in from_infos
-            ]
+            else:
+                from_infos, to_infos = self._patch_glob(from_info, to_info, from_infos)
 
         jobs = batch_size or self.jobs
         if self.fs.async_impl:
