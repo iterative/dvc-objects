@@ -85,6 +85,32 @@ def check_required_version(
         )
 
 
+class PatchedFileSystem:
+    def __init__(self, fs):
+        self._fs = fs
+        self._original_glob = fs._glob
+
+    def __enter__(self):
+        self._bypass_glob()
+        return self._fs
+
+    def __exit__(self, *args):
+        self._fs._glob = self._original_glob
+
+    def _bypass_glob(self) -> None:
+        from glob import has_magic
+
+        if getattr(self._fs, "_glob", None):
+
+            async def _glob(path, **kwargs):
+                if has_magic(path):
+                    return [path]
+                else:
+                    return self._fs._glob(path)  # pylint: disable=protected-access
+
+            self._fs._glob = _glob  # pylint: disable=protected-access
+
+
 class FileSystem:
     sep = "/"
 
@@ -646,13 +672,15 @@ class FileSystem:
             ]
 
         jobs = batch_size or self.jobs
+
         if self.fs.async_impl:
-            return self.fs.get(
-                from_infos,
-                to_infos,
-                callback=callback,
-                batch_size=jobs,
-            )
+            with PatchedFileSystem(self.fs) as patched_fs:
+                return patched_fs.get(
+                    from_infos,
+                    to_infos,
+                    callback=callback,
+                    batch_size=jobs,
+                )
 
         callback.set_size(len(from_infos))
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
