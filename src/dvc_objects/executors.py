@@ -122,16 +122,20 @@ async def batch_coros(
     tasks = create_taskset(batch_size)
     results: Dict[int, Any] = {}
     while tasks:
-        done, _pending = await asyncio.wait(
+        done, pending = await asyncio.wait(
             tasks.keys(), timeout=timeout, return_when=asyncio.FIRST_COMPLETED
         )
         if not done and timeout:
+            for pending_fut in pending:
+                pending_fut.cancel()
             raise TimeoutError
         for fut in done:
             try:
                 result = fut.result()
             except Exception as exc:  # pylint: disable=broad-except
                 if not return_exceptions:
+                    for pending_fut in pending:
+                        pending_fut.cancel()
                     raise
                 result = exc
             index = tasks.pop(fut)
