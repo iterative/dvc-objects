@@ -216,7 +216,11 @@ class ObjectDB:
         yield from self.fs.find(paths, batch_size=jobs, prefix=prefix)
 
     def path_to_oid(self, path) -> str:
-        self_parts = self.fs.path.parts(self.path)
+        if self.fs.path.isabs(path):
+            self_path = self.fs.path.abspath(self.path)
+        else:
+            self_path = self.path
+        self_parts = self.fs.path.parts(self_path)
         parts = self.fs.path.parts(path)[len(self_parts) :]
 
         if not (len(parts) == 2 and parts[0] and len(parts[0]) == 2):
