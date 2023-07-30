@@ -257,6 +257,7 @@ def _try_links(
                 errno.EXDEV,
                 errno.ENOTTY,
                 errno.ENOSYS,
+                errno.EINVAL,
             ):
                 raise
             error = exc
