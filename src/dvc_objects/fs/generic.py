@@ -99,13 +99,19 @@ def copy(
             on_error=on_error,
         )
 
+    jobs = batch_size or to_fs.jobs
     put_file = callback.wrap_and_branch(to_fs.put_file)
+    put_file_kwargs = {}
+    if hasattr(to_fs.fs, "max_concurrency"):
+        put_file_kwargs["max_concurrency"] = jobs if len(from_path) == 1 else 1
 
     def _copy_one(from_p: "AnyFSPath", to_p: "AnyFSPath"):
         try:
             with from_fs.open(from_p, mode="rb") as fobj:
                 size = from_fs.size(from_p)
-                return put_file(fobj, to_p, size=size, callback=callback)
+                return put_file(
+                    fobj, to_p, size=size, callback=callback, **put_file_kwargs
+                )
         except Exception as exc:  # pylint: disable=broad-except
             if on_error is not None:
                 on_error(from_p, to_p, exc)
@@ -115,7 +121,6 @@ def copy(
     if len(from_path) == 1:
         return _copy_one(from_path[0], to_path[0])
 
-    jobs = batch_size or to_fs.jobs
     executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
     with executor:
         list(executor.imap_unordered(_copy_one, from_path, to_path))
@@ -129,11 +134,15 @@ def _put(
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
 ) -> None:
+    jobs = batch_size or to_fs.jobs
     put_file = callback.wrap_and_branch(to_fs.put_file)
+    put_file_kwargs = {}
+    if hasattr(to_fs.fs, "max_concurrency"):
+        put_file_kwargs["max_concurrency"] = jobs if len(from_paths) == 1 else 1
 
     def _put_one(from_path: "AnyFSPath", to_path: "AnyFSPath"):
         try:
-            return put_file(from_path, to_path, callback=callback)
+            return put_file(from_path, to_path, callback=callback, **put_file_kwargs)
         except Exception as exc:  # pylint: disable=broad-except
             if on_error is not None:
                 on_error(from_path, to_path, exc)
@@ -143,7 +152,6 @@ def _put(
     if len(from_paths) == 1:
         return _put_one(from_paths[0], to_paths[0])
 
-    jobs = batch_size or to_fs.jobs
     if to_fs.fs.async_impl:
         put_coro = callback.wrap_and_branch_coro(
             to_fs.fs._put_file  # pylint: disable=protected-access
@@ -152,7 +160,7 @@ def _put(
         fut = asyncio.run_coroutine_threadsafe(
             batch_coros(
                 [
-                    put_coro(from_path, to_path, callback=callback)
+                    put_coro(from_path, to_path, callback=callback, **put_file_kwargs)
                     for from_path, to_path in zip(from_paths, to_paths)
                 ],
                 batch_size=jobs,
@@ -181,12 +189,18 @@ def _get(
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
 ) -> None:
+    jobs = batch_size or from_fs.jobs
     get_file = callback.wrap_and_branch(from_fs.get_file)
+    get_file_kwargs = {}
+    if hasattr(from_fs.fs, "max_concurrency"):
+        get_file_kwargs["max_concurrency"] = jobs if len(from_paths) == 1 else 1
 
     def _get_one(from_path: "AnyFSPath", to_path: "AnyFSPath"):
         with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
             try:
-                return get_file(from_path, tmp_file, callback=callback)
+                return get_file(
+                    from_path, tmp_file, callback=callback, **get_file_kwargs
+                )
             except Exception as exc:  # pylint: disable=broad-except
                 if on_error is not None:
                     on_error(from_path, to_path, exc)
@@ -196,7 +210,6 @@ def _get(
     if len(from_paths) == 1:
         return _get_one(from_paths[0], to_paths[0])
 
-    jobs = batch_size or from_fs.jobs
     if from_fs.fs.async_impl:
 
         async def _get_one_coro(from_path: "AnyFSPath", to_path: "AnyFSPath"):
@@ -204,7 +217,9 @@ def _get(
                 from_fs.fs._get_file  # pylint: disable=protected-access
             )
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
-                return await get_coro(from_path, tmp_file, callback=callback)
+                return await get_coro(
+                    from_path, tmp_file, callback=callback, **get_file_kwargs
+                )
 
         loop = get_loop()
         fut = asyncio.run_coroutine_threadsafe(
@@ -238,13 +253,21 @@ def _try_links(
     to_fs: "FileSystem",
     to_path: "AnyFSPath",
     callback: "Callback" = DEFAULT_CALLBACK,
+    batch_size: Optional[int] = None,
 ) -> None:
     error = None
     while links:
         link = links[0]
 
         if link == "copy":
-            return copy(from_fs, from_path, to_fs, to_path, callback=callback)
+            return copy(
+                from_fs,
+                from_path,
+                to_fs,
+                to_path,
+                callback=callback,
+                batch_size=batch_size,
+            )
 
         try:
             _link(link, from_fs, from_path, to_fs, to_path)
@@ -312,6 +335,7 @@ def transfer(
                 to_fs,
                 to_p,
                 callback=callback,
+                batch_size=batch_size,
             )
         except OSError as exc:
             # If the target file already exists, we are going to simply
