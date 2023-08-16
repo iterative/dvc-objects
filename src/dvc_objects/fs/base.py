@@ -107,10 +107,14 @@ class FileSystem:
         self.jobs = kwargs.get("jobs") or self._JOBS
         self.hash_jobs = kwargs.get("checksum_jobs") or self.HASH_JOBS
         self._config = kwargs
-        self.fs_args: Dict[str, Any] = {"skip_instance_cache": True}
-        self.fs_args.update(self._prepare_credentials(**kwargs))
         if fs:
             self.fs = fs
+
+    @cached_property
+    def fs_args(self) -> Dict[str, Any]:
+        ret = {"skip_instance_cache": True}
+        ret.update(self._prepare_credentials(**self._config))
+        return ret
 
     @property
     def config(self) -> Dict[str, Any]:
@@ -142,7 +146,7 @@ class FileSystem:
 
     @cached_property
     def version_aware(self) -> bool:
-        return self.fs_args.get("version_aware", False)
+        return self._config.get("version_aware", False)
 
     @staticmethod
     def _get_kwargs_from_urls(urlpath: str) -> "Dict[str, Any]":
