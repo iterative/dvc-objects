@@ -48,6 +48,19 @@ def test_odb_add(memfs):
     assert memfs.cat_file("/odb/12/34") == b"foo"
 
 
+def test_odb_add_exists(tmp_path):
+    from dvc_objects.fs.local import localfs
+
+    (tmp_path / "foo").write_bytes(b"foo")
+    (tmp_path / "bar").write_bytes(b"bar")
+
+    odb = ObjectDB(localfs, str(tmp_path / "odb"))
+    odb.add(str(tmp_path / "foo"), localfs, "1234")
+    assert odb.exists("1234")
+
+    odb.add(str(tmp_path / "bar"), localfs, "1234")
+
+
 def test_delete(memfs):
     memfs.pipe({"foo": b"foo", "bar": b"bar"})
 
