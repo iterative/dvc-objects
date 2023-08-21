@@ -22,7 +22,9 @@ from typing import (
 )
 
 from fsspec.asyn import get_loop
-from funcy import cached_property, once_per_args
+from funcy import once_per_args
+
+from dvc_objects.utils import cached_property
 
 from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK, Callback
@@ -230,7 +232,7 @@ class FileSystem:
         path: AnyFSPath,
         offset: int,
         length: int,
-        delimiter: bytes = None,
+        delimiter: Optional[bytes] = None,
     ) -> bytes:
         return self.fs.read_block(path, offset, length, delimiter=delimiter)
 
@@ -248,7 +250,7 @@ class FileSystem:
         paths: List[AnyFSPath],
         starts: List[int],
         ends: List[int],
-        max_gap: int = None,
+        max_gap: Optional[int] = None,
         **kwargs,
     ) -> List[bytes]:
         return self.fs.cat_ranges(paths, starts, ends, max_gap=max_gap, **kwargs)
@@ -256,8 +258,8 @@ class FileSystem:
     def cat_file(
         self,
         path: AnyFSPath,
-        start: int = None,
-        end: int = None,
+        start: Optional[int] = None,
+        end: Optional[int] = None,
         **kwargs: Any,
     ) -> bytes:
         return self.fs.cat_file(path, start=start, end=end, **kwargs)
@@ -277,9 +279,9 @@ class FileSystem:
     def read_text(
         self,
         path: AnyFSPath,
-        encoding: str = None,
-        errors: str = None,
-        newline: str = None,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
         return self.fs.read_text(
@@ -290,9 +292,9 @@ class FileSystem:
         self,
         path: AnyFSPath,
         value: str,
-        encoding: str = None,
-        errors: str = None,
-        newline: str = None,
+        encoding: Optional[str] = None,
+        errors: Optional[str] = None,
+        newline: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         self.fs.write_text(
@@ -531,7 +533,7 @@ class FileSystem:
         from_file: Union[AnyFSPath, "BinaryIO"],
         to_info: AnyFSPath,
         callback: Callback = DEFAULT_CALLBACK,
-        size: int = None,
+        size: Optional[int] = None,
         **kwargs,
     ) -> None:
         if size:
@@ -578,7 +580,7 @@ class FileSystem:
         self,
         path: AnyFSPath,
         total: bool = True,
-        maxdepth: int = None,
+        maxdepth: Optional[int] = None,
         **kwargs: Any,
     ) -> Union[int, Dict[AnyFSPath, int]]:
         return self.fs.du(path, total=total, maxdepth=maxdepth, **kwargs)
@@ -589,7 +591,7 @@ class FileSystem:
         to_info: Union[AnyFSPath, List[AnyFSPath]],
         callback: "Callback" = DEFAULT_CALLBACK,
         recursive: bool = False,  # pylint: disable=unused-argument
-        batch_size: int = None,
+        batch_size: Optional[int] = None,
     ):
         jobs = batch_size or self.jobs
         if self.fs.async_impl:
@@ -617,7 +619,7 @@ class FileSystem:
         to_info: Union[AnyFSPath, List[AnyFSPath]],
         callback: "Callback" = DEFAULT_CALLBACK,
         recursive: bool = False,  # pylint: disable=unused-argument
-        batch_size: int = None,
+        batch_size: Optional[int] = None,
     ) -> None:
         # Currently, the implementation is non-recursive if the paths are
         # provided as a list, and recursive if it's a single path.

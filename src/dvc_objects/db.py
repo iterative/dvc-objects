@@ -350,12 +350,12 @@ class ObjectDB:
         remote_size, remote_oids = self._estimate_remote_size()
         return self._list_oids_traverse(remote_size, remote_oids, jobs=jobs)
 
-    def list_oids_exists(self, oids: List[str], jobs: Optional[int] = None):
+    def list_oids_exists(self, oids: Iterable[str], jobs: Optional[int] = None):
         """Return list of the specified oids which exist in this fs.
         Hashes will be queried individually.
         """
-        logger.debug(f"Querying {len(oids)} oids via object_exists")
         paths = list(map(self.oid_to_path, oids))
+        logger.debug(f"Querying {len(paths)} oids via object_exists")
         in_remote = self.fs.exists(paths, batch_size=jobs)
         yield from itertools.compress(oids, in_remote)
 

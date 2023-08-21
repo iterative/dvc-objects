@@ -28,7 +28,7 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
     _max_workers: int
 
     def __init__(
-        self, max_workers: int = None, cancel_on_error: bool = False, **kwargs
+        self, max_workers: Optional[int] = None, cancel_on_error: bool = False, **kwargs
     ):
         super().__init__(max_workers=max_workers, **kwargs)
         self._cancel_on_error = cancel_on_error
@@ -62,26 +62,26 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
         if sys.version_info > (3, 9):
             # pylint: disable=unexpected-keyword-arg
             return super().shutdown(wait=wait, cancel_futures=cancel_futures)
+        else:
+            with self._shutdown_lock:
+                self._shutdown = True
+                if cancel_futures:
+                    # Drain all work items from the queue, and then cancel their
+                    # associated futures.
+                    while True:
+                        try:
+                            work_item = self._work_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                        if work_item is not None:
+                            work_item.future.cancel()
 
-        with self._shutdown_lock:
-            self._shutdown = True
-            if cancel_futures:
-                # Drain all work items from the queue, and then cancel their
-                # associated futures.
-                while True:
-                    try:
-                        work_item = self._work_queue.get_nowait()
-                    except queue.Empty:
-                        break
-                    if work_item is not None:
-                        work_item.future.cancel()
-
-            # Send a wake-up to prevent threads calling
-            # _work_queue.get(block=True) from permanently blocking.
-            self._work_queue.put(None)
-        if wait:
-            for t in self._threads:
-                t.join()
+                # Send a wake-up to prevent threads calling
+                # _work_queue.get(block=True) from permanently blocking.
+                self._work_queue.put(None)  # type: ignore[arg-type]
+            if wait:
+                for t in self._threads:
+                    t.join()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._cancel_on_error:
