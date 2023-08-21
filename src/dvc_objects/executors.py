@@ -78,7 +78,7 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
 
                 # Send a wake-up to prevent threads calling
                 # _work_queue.get(block=True) from permanently blocking.
-                self._work_queue.put(None)
+                self._work_queue.put(None)  # type: ignore[arg-type]
             if wait:
                 for t in self._threads:
                     t.join()
