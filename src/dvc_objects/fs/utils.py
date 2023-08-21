@@ -104,7 +104,7 @@ def remove(path: "AnyFSPath") -> None:
             raise
 
 
-def makedirs(path, exist_ok: bool = False, mode: int = None) -> None:
+def makedirs(path, exist_ok: bool = False, mode: Optional[int] = None) -> None:
     if mode is None:
         os.makedirs(path, exist_ok=exist_ok)
         return
@@ -144,9 +144,9 @@ def makedirs(path, exist_ok: bool = False, mode: int = None) -> None:
 def copyfile(
     src: "AnyFSPath",
     dest: "AnyFSPath",
-    callback: "Callback" = None,
+    callback: Optional["Callback"] = None,
     no_progress_bar: bool = False,
-    name: str = None,
+    name: Optional[str] = None,
 ) -> None:
     """Copy file with progress bar"""
     name = name if name else os.path.basename(dest)

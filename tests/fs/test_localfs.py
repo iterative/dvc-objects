@@ -1,5 +1,6 @@
 import os
 from os import fspath
+from typing import Dict, List, Set, Tuple
 
 import pytest
 
@@ -97,9 +98,11 @@ def test_walk(dir_path):
 
 def test_walk_detail(dir_path):
     fs = LocalFileSystem()
-    walk_results = list(fs.walk(fspath(dir_path), detail=True))
+    walk_results: List[Tuple[str, Dict[str, Dict], Dict[str, Dict]]] = list(
+        fs.walk(fspath(dir_path), detail=True)
+    )
 
-    expected = [
+    expected: List[Tuple[str, Set[str], Set[str]]] = [
         (str(dir_path), {"data"}, {"code.py", "bar", "тест", "foo"}),
         (str(dir_path / "data"), {"sub"}, {"file"}),
         (str(dir_path / "data" / "sub"), set(), {"file"}),

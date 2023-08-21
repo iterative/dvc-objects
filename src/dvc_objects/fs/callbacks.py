@@ -1,9 +1,10 @@
 from contextlib import ExitStack
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar, cast, overload
 
 import fsspec
-from funcy import cached_property
+
+from dvc_objects.utils import cached_property
 
 if TYPE_CHECKING:
     from typing import Awaitable, BinaryIO, Callable, TextIO, Union
@@ -33,7 +34,7 @@ class Callback(fsspec.Callback):
         from tqdm.utils import CallbackIOWrapper
 
         wrapped = CallbackIOWrapper(self.relative_update, fobj, method)
-        return wrapped
+        return cast("Union[TextIO, BinaryIO]", wrapped)
 
     def wrap_fn(self, fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
         @wraps(fn)
@@ -121,7 +122,7 @@ class Callback(fsspec.Callback):
         path_1: "Union[str, BinaryIO]",
         path_2: str,
         kwargs: Dict[str, Any],
-        child: "Callback" = None,
+        child: Optional["Callback"] = None,
     ) -> "Callback":
         child = kwargs["callback"] = child or DEFAULT_CALLBACK
         return child
@@ -136,7 +137,7 @@ class TqdmCallback(Callback):
         self,
         size: Optional[int] = None,
         value: int = 0,
-        progress_bar: "Tqdm" = None,
+        progress_bar: Optional["Tqdm"] = None,
         **tqdm_kwargs,
     ):
         tqdm_kwargs["total"] = size or -1

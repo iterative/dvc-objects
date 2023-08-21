@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .base import FileSystem
@@ -18,7 +18,7 @@ class RemoteMissingDepsError(Exception):
         fs: "FileSystem",
         protocol: str,
         url: str,
-        missing: List[str] = None,
+        missing: Optional[List[str]] = None,
     ) -> None:
         self.protocol = protocol
         self.fs = fs
