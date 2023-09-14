@@ -15,7 +15,7 @@ from .utils import copyfile, makedirs, move, remove, tmp_fname
 logger = logging.getLogger(__name__)
 
 
-# pylint:disable=abstract-method, arguments-differ, arguments-renamed
+# pylint:disable=abstract-method, arguments-differ
 class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     sep = os.sep
 
