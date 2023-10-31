@@ -316,7 +316,7 @@ def transfer(
     # Try to link files sequentially. If/when the only remaining link type is
     # copy, the remaining copy operations will be batched.
     for i, (from_p, to_p) in enumerate(zip(from_path, to_path)):
-        if links[0] == "copy":
+        if links and links[0] == "copy":
             copy(
                 from_fs,
                 from_path[i:],
