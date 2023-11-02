@@ -1,6 +1,6 @@
 from contextlib import ExitStack
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, TypeVar, cast, overload
 
 import fsspec
 
@@ -17,9 +17,21 @@ if TYPE_CHECKING:
     _R = TypeVar("_R")
 
 
-class Callback(fsspec.Callback):
-    """Callback usable as a context manager, and a few helper methods."""
+class _CallbackProtocol(Protocol):
+    def relative_update(self, inc: int = 1) -> None:
+        ...
 
+    def branch(
+        self,
+        path_1: "Union[str, BinaryIO]",
+        path_2: str,
+        kwargs: Dict[str, Any],
+        child: Optional["Callback"] = None,
+    ) -> "Callback":
+        ...
+
+
+class _DVCCallbackMixin(_CallbackProtocol):
     @overload
     def wrap_attr(self, fobj: "BinaryIO", method: str = "read") -> "BinaryIO":
         ...
@@ -66,7 +78,7 @@ class Callback(fsspec.Callback):
         @wraps(fn)
         def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
             kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):
+            with self.branch(path1, path2, kw):  # pylint: disable=not-context-manager
                 return wrapped(path1, path2, **kw)
 
         return func
@@ -81,7 +93,7 @@ class Callback(fsspec.Callback):
         @wraps(fn)
         async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
             kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):
+            with self.branch(path1, path2, kw):  # pylint: disable=not-context-manager
                 return await wrapped(path1, path2, **kw)
 
         return func
@@ -95,6 +107,22 @@ class Callback(fsspec.Callback):
     def close(self):
         """Handle here on exit."""
 
+    @classmethod
+    def as_tqdm_callback(
+        cls,
+        callback: Optional[fsspec.callbacks.Callback] = None,
+        **tqdm_kwargs: Any,
+    ) -> "Callback":
+        if callback is None:
+            return TqdmCallback(**tqdm_kwargs)
+        if isinstance(callback, Callback):
+            return callback
+        return cast("Callback", _FsspecCallbackWrapper(callback))
+
+
+class Callback(fsspec.Callback, _DVCCallbackMixin):
+    """Callback usable as a context manager, and a few helper methods."""
+
     def relative_update(self, inc: int = 1) -> None:
         inc = inc if inc is not None else 0
         return super().relative_update(inc)
@@ -104,18 +132,14 @@ class Callback(fsspec.Callback):
         return super().absolute_update(value)
 
     @classmethod
-    def as_callback(cls, maybe_callback: Optional["Callback"] = None) -> "Callback":
+    def as_callback(
+        cls, maybe_callback: Optional[fsspec.callbacks.Callback] = None
+    ) -> "Callback":
         if maybe_callback is None:
             return DEFAULT_CALLBACK
-        return maybe_callback
-
-    @classmethod
-    def as_tqdm_callback(
-        cls,
-        callback: Optional["Callback"] = None,
-        **tqdm_kwargs: Any,
-    ) -> "Callback":
-        return callback or TqdmCallback(**tqdm_kwargs)
+        if isinstance(maybe_callback, Callback):
+            return maybe_callback
+        return _FsspecCallbackWrapper(maybe_callback)
 
     def branch(  # pylint: disable=arguments-differ
         self,
@@ -183,6 +207,22 @@ class TqdmCallback(Callback):
             bytes=True, desc=path_1 if isinstance(path_1, str) else path_2
         )
         return super().branch(path_1, path_2, kwargs, child=child)
+
+
+class _FsspecCallbackWrapper(fsspec.callbacks.Callback, _DVCCallbackMixin):
+    def __init__(  # pylint: disable=super-init-not-called
+        self, callback: fsspec.callbacks.Callback
+    ):
+        object.__setattr__(self, "_callback", callback)
+
+    def __getattr__(self, name: str):
+        return getattr(self._callback, name)
+
+    def __setattr__(self, name: str, value: Any):
+        setattr(self._callback, name, value)
+
+    def branch(self, *args, **kwargs):
+        return _FsspecCallbackWrapper(self._callback.branch(*args, **kwargs))
 
 
 DEFAULT_CALLBACK = NoOpCallback()
