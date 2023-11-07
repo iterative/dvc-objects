@@ -52,7 +52,9 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     def isdir(self, path) -> bool:
         return os.path.isdir(path)
 
-    def walk(self, path, maxdepth=None, topdown=True, detail=False, **kwargs):
+    def walk(  # pylint: disable=arguments-renamed
+        self, path, maxdepth=None, topdown=True, detail=False, **kwargs
+    ):
         """Directory fs generator.
 
         See `os.walk` for the docs. Differences:
