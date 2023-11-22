@@ -160,7 +160,8 @@ class FileSystem:
         return options
 
     def _prepare_credentials(
-        self, **config: Dict[str, Any]  # pylint: disable=unused-argument
+        self,
+        **config: Dict[str, Any],  # pylint: disable=unused-argument
     ) -> Dict[str, Any]:
         """Prepare the arguments for authentication to the
         host filesystem"""
