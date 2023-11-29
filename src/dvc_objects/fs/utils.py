@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 LOCAL_CHUNK_SIZE = 2**20  # 1 MB
+COPY_PBAR_MIN_SIZE = 2**30  # 1 GB
 
 
 def is_exec(mode: int) -> bool:
@@ -161,22 +162,25 @@ def copyfile(
     try:
         system.reflink(src, dest)
     except OSError:
-        from .callbacks import Callback
+        if total < COPY_PBAR_MIN_SIZE:
+            shutil.copyfile(src, dest)
+        else:
+            from .callbacks import Callback
 
-        with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
-            with Callback.as_tqdm_callback(
-                callback,
-                size=total,
-                bytes=True,
-                disable=no_progress_bar,
-                desc=name,
-            ) as cb:
-                wrapped = cb.wrap_attr(fdest, "write")
-                while True:
-                    buf = fsrc.read(LOCAL_CHUNK_SIZE)
-                    if not buf:
-                        break
-                    wrapped.write(buf)
+            with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
+                with Callback.as_tqdm_callback(
+                    callback,
+                    size=total,
+                    bytes=True,
+                    disable=no_progress_bar,
+                    desc=name,
+                ) as cb:
+                    wrapped = cb.wrap_attr(fdest, "write")
+                    while True:
+                        buf = fsrc.read(LOCAL_CHUNK_SIZE)
+                        if not buf:
+                            break
+                        wrapped.write(buf)
 
     if callback:
         callback.absolute_update(total)
