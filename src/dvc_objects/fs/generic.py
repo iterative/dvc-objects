@@ -86,7 +86,7 @@ def copy(
             to_fs,
             to_path,
             callback=callback,
-            batch_size=batch_size,
+            batch_size=1 if isinstance(to_fs, LocalFileSystem) else batch_size,
             on_error=on_error,
         )
     if isinstance(to_fs, LocalFileSystem):
