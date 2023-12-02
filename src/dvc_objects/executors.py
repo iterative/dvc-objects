@@ -45,10 +45,15 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
         It does not create all the futures at once to reduce memory usage.
         """
 
+        it = zip(*iterables)
+        if self.max_workers == 1:
+            for args in it:
+                yield fn(*args)
+            return
+
         def create_taskset(n: int) -> Set[futures.Future]:
             return {self.submit(fn, *args) for args in islice(it, n)}
 
-        it = zip(*iterables)
         tasks = create_taskset(self.max_workers * 5)
         while tasks:
             done, tasks = futures.wait(tasks, return_when=futures.FIRST_COMPLETED)
