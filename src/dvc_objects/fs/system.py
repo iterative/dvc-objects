@@ -48,9 +48,10 @@ def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
         clib = _cdll(LIBC)
     except OSError as exc:
         logger.debug(
-            "unable to access '{}' (errno '{}'). " "Falling back to '{}'.".format(
-                LIBC, exc.errno, LIBC_FALLBACK
-            )
+            "unable to access '%s' (errno '%d'). Falling back to '%s'.",
+            LIBC,
+            exc.errno,
+            LIBC_FALLBACK,
         )
         if exc.errno != errno.ENOENT:
             raise
