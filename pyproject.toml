@@ -41,6 +41,7 @@ tests = [
     "pytest-mock==3.8.2",
     "mypy==1.5.1",
     "pytest-servers[s3]==0.1.3",
+    "pytest-benchmark",
 ]
 dev = [
     "dvc-objects[tests]",
