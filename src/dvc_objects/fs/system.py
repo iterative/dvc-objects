@@ -14,10 +14,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-umask = os.umask(0)
-os.umask(umask)
-
-
 def hardlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
     # NOTE: we should really be using `os.link()` here with
     # `follow_symlinks=True`, but unfortunately the implementation is
@@ -107,6 +103,9 @@ def _reflink_linux(src: "AnyFSPath", dst: "AnyFSPath") -> None:
 def reflink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
     source, link_name = os.fspath(source), os.fspath(link_name)
 
+    # NOTE: reflink may (macos) or may not (linux) clone permissions,
+    # so the user needs to handle those himself.
+
     system = platform.system()
     if system == "Darwin":
         _reflink_darwin(source, link_name)
@@ -117,10 +116,6 @@ def reflink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
             errno.ENOTSUP,
             f"reflink is not supported on '{system}'",
         )
-
-    # NOTE: reflink has a new inode, but has the same mode as the src,
-    # so we need to chmod it to look like a normal copy.
-    os.chmod(link_name, 0o666 & ~umask)
 
 
 def inode(path: "AnyFSPath") -> int:
