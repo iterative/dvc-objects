@@ -42,6 +42,7 @@ tests = [
     "mypy==1.5.1",
     "pytest-servers[s3]==0.1.3",
     "pytest-benchmark",
+    "reflink",
 ]
 dev = [
     "dvc-objects[tests]",
@@ -99,6 +100,8 @@ ignore_missing_imports = true
 module = [
     "fsspec.*",
     "funcy",
+    "reflink.*",
+    "shortuuid",
 ]
 
 [tool.codespell]
