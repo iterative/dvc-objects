@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from reflink import ReflinkImpossibleError
 from reflink import reflink as pyreflink
 
 from dvc_objects.fs.system import hardlink, reflink, symlink
@@ -22,7 +23,7 @@ def test_link(benchmark, tmp_dir_pytest_cache, link):
     (original / "test").write_text("test")
     try:
         link(os.fspath(original / "test"), os.fspath(links / "test"))
-    except (OSError, NotImplementedError) as exc:
+    except (OSError, NotImplementedError, ReflinkImpossibleError) as exc:
         pytest.skip(reason=f"not supported: {exc}")
 
     paths = []
