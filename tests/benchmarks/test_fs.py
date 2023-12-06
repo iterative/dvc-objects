@@ -1,11 +1,24 @@
+import os
 import errno
+import platform
 import pytest
 import shutil
-from reflink import reflink as pyreflink
+from reflink import reflink as _pyreflink
 from reflink.error import ReflinkImpossibleError
-from dvc_objects.fs.system import reflink, hardlink, symlink
+from dvc_objects.fs.system import reflink, hardlink, symlink, umask
 
 NLINKS = 10000
+
+
+def pyreflink(src, dst):
+    _pyreflink(src, dst)
+
+    if platform.system() == "Darwin":
+        # NOTE: pyreflink is not chmod-ing the link to restore normal permissions
+        # on macos, so we need to do that ourselves to be fair.
+        # See https://github.com/iterative/dql/pull/1007#issuecomment-1841892597
+
+        os.chmod(dst, 0o666 & ~umask)
 
 
 @pytest.mark.parametrize(
