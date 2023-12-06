@@ -91,7 +91,7 @@ elif sys.platform == "linux":
         src_fd = os.open(src, os.O_RDONLY)
 
         try:
-            dst_fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+            dst_fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o666)
         except OSError:
             os.close(src_fd)
             raise
