@@ -27,7 +27,7 @@ def link(request, original, links):
     try:
         link(os.fspath(original / "test"), os.fspath(links / "test"))
     except (OSError, NotImplementedError, ReflinkImpossibleError) as exc:
-        pytest.skip(reason=f"{link.__name__} not supported: {exc}")
+        pytest.skip(reason=f"{link.__module__}.{link.__name__} not supported: {exc}")
     return link
 
 
