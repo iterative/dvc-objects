@@ -1,37 +1,47 @@
 import os
 
 import pytest
-from reflink import ReflinkImpossibleError
-from reflink import reflink as pyreflink
+from reflink import reflink as pyreflink, ReflinkImpossibleError
 
 from dvc_objects.fs.system import hardlink, reflink, symlink
 
-NLINKS = 1000
+NLINKS = 1_000
 
 
-@pytest.mark.parametrize(
-    "link",
-    [pytest.param(pyreflink, id="pyreflink"), reflink, hardlink, symlink],
+@pytest.fixture(scope="session")
+def original(make_tmp_dir_pytest_cache):
+    return make_tmp_dir_pytest_cache("original")
+
+
+@pytest.fixture(scope="session")
+def links(make_tmp_dir_pytest_cache):
+    return make_tmp_dir_pytest_cache("links")
+
+
+@pytest.fixture(
+    params=[pytest.param(pyreflink, id="pyreflink"), reflink, hardlink, symlink]
 )
-def test_link(benchmark, tmp_dir_pytest_cache, link):
-    original = tmp_dir_pytest_cache / "original"
-    original.mkdir()
-
-    links = tmp_dir_pytest_cache / "links"
-    links.mkdir()
-
+def link(request, original, links):
+    link = request.param
     (original / "test").write_text("test")
     try:
         link(os.fspath(original / "test"), os.fspath(links / "test"))
     except (OSError, NotImplementedError, ReflinkImpossibleError) as exc:
-        pytest.skip(reason=f"not supported: {exc}")
+        pytest.skip(reason=f"{link.__name__} not supported: {exc}")
+    return link
 
+
+@pytest.fixture(scope="session")
+def paths(original, links):
     paths = []
     for idx in range(NLINKS):
         path = original / str(idx)
         path.write_text(path.name)
         paths.append((os.fspath(path), os.fspath(links / path.name)))
+    return paths
 
+
+def test_link(benchmark, paths, links, link):
     def setup():
         for link in links.iterdir():
             if link.is_file():
