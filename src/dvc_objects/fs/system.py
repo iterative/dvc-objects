@@ -4,6 +4,7 @@ import os
 import platform
 import stat
 import sys
+import functools
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -36,7 +37,8 @@ def symlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
     os.symlink(source, link_name)
 
 
-def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
+@functools.lru_cache(maxsize=1)
+def _clonefile():
     import ctypes
 
     def _cdll(name):
@@ -58,13 +60,20 @@ def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
         # NOTE: trying to bypass System Integrity Protection (SIP)
         clib = _cdll(LIBC_FALLBACK)
 
-    if not hasattr(clib, "clonefile"):
+    clonefile = getattr(clib, "clonefile", None)
+    if clonefile is None:
         raise OSError(
             errno.ENOTSUP,
             "'clonefile' not supported by the standard library",
         )
 
-    clonefile = clib.clonefile
+    return clonefile
+
+
+def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
+    import ctypes
+
+    clonefile = _clonefile()
     clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
     clonefile.restype = ctypes.c_int
 
