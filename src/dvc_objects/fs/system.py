@@ -40,7 +40,6 @@ def symlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
 
 @functools.lru_cache(maxsize=1)
 def _clonefile():
-
     def _cdll(name):
         return ctypes.CDLL(name, use_errno=True)
 
