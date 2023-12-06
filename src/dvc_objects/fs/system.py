@@ -67,15 +67,14 @@ def _clonefile():
             "'clonefile' not supported by the standard library",
         )
 
+    clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+    clonefile.restype = ctypes.c_int
+
     return clonefile
 
 
 def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
-    import ctypes
-
     clonefile = _clonefile()
-    clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
-    clonefile.restype = ctypes.c_int
 
     ret = clonefile(
         ctypes.c_char_p(os.fsencode(src)),
