@@ -21,9 +21,9 @@ def test_link(benchmark, tmp_dir_pytest_cache, link):
 
     (original / "test").write_text("test")
     try:
-        reflink(original / "test", links / "test")
-    except OSError as exc:
-        pytest.skip(reason=f"reflink not supported: {exc}")
+        link(os.fspath(original / "test"), os.fspath(links / "test"))
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(reason=f"not supported: {exc}")
 
     paths = []
     for idx in range(NLINKS):
