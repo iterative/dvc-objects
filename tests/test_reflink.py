@@ -25,7 +25,7 @@ def test_reflink(tmp_dir_pytest_cache):
 
 @pytest.mark.skipif(os.name != "nt", reason="only run in Windows")
 def test_reflink_unsupported_on_windows(tmp_dir_pytest_cache):
-    src = tmp_dir_pytest_cache/ "source"
+    src = tmp_dir_pytest_cache / "source"
     dest = tmp_dir_pytest_cache / "dest"
     src.write_bytes(b"content")
 
