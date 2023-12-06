@@ -48,16 +48,14 @@ def _clonefile():
             LIBC_FALLBACK,
         )
         if exc.errno != errno.ENOENT:
-            raise
+            return None
         # NOTE: trying to bypass System Integrity Protection (SIP)
         clib = _cdll(LIBC_FALLBACK)
 
     clonefile = getattr(clib, "clonefile", None)
     if clonefile is None:
-        raise OSError(
-            errno.ENOTSUP,
-            "'clonefile' not supported by the standard library",
-        )
+        logger.debug("'clonefile' is not supported by the standard library")
+        return None
 
     def errcheck(ret, _func, _args):
         if ret:
@@ -75,8 +73,7 @@ def _clonefile():
 
 # NOTE: reflink may (macos) or may not (linux) clone permissions,
 # so the user needs to handle those himself.
-if sys.platform == "darwin":
-    clonefile = _clonefile()
+if sys.platform == "darwin" and (clonefile := _clonefile()):
 
     def reflink(src, dst):
         clonefile(
