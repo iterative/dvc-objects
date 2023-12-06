@@ -1,3 +1,4 @@
+import ctypes
 import errno
 import logging
 import os
@@ -39,8 +40,6 @@ def symlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
 
 @functools.lru_cache(maxsize=1)
 def _clonefile():
-    import ctypes
-
     def _cdll(name):
         return ctypes.CDLL(name, use_errno=True)
 
@@ -67,15 +66,14 @@ def _clonefile():
             "'clonefile' not supported by the standard library",
         )
 
+    clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+    clonefile.restype = ctypes.c_int
+
     return clonefile
 
 
 def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
-    import ctypes
-
     clonefile = _clonefile()
-    clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
-    clonefile.restype = ctypes.c_int
 
     ret = clonefile(
         ctypes.c_char_p(os.fsencode(src)),
