@@ -1,3 +1,4 @@
+import ctypes
 import errno
 import logging
 import os
@@ -39,7 +40,6 @@ def symlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
 
 @functools.lru_cache(maxsize=1)
 def _clonefile():
-    import ctypes
 
     def _cdll(name):
         return ctypes.CDLL(name, use_errno=True)
