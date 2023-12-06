@@ -2,31 +2,16 @@ import errno
 import os
 import stat
 from os import fspath, umask
-from pathlib import Path
-from tempfile import TemporaryDirectory
 
 import pytest
 
 from dvc_objects.fs.system import reflink
 
 
-@pytest.fixture
-def test_dir(request):
-    """Create a test directory within cache directory.
-
-    The cache directory by default, is in the root of the repo, where reflink
-    may be supported.
-    """
-    cache = request.config.cache
-    path = cache.mkdir("reflink_test")
-    with TemporaryDirectory(dir=path) as tmp_dir:
-        yield Path(tmp_dir)
-
-
 @pytest.mark.xfail(raises=OSError, strict=False)
-def test_reflink(test_dir):
-    src = test_dir / "source"
-    dest = test_dir / "dest"
+def test_reflink(tmp_dir_pytest_cache):
+    src = tmp_dir_pytest_cache / "source"
+    dest = tmp_dir_pytest_cache / "dest"
 
     src.write_bytes(b"content")
     reflink(fspath(src), fspath(dest))
