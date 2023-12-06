@@ -2,7 +2,6 @@ import asyncio
 import errno
 import logging
 import os
-import sys
 from contextlib import suppress
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -61,12 +60,8 @@ def _link(
 
     func = getattr(to_fs, link)
     func(from_path, to_path)
-    if (
-        link == "reflink"
-        and sys.platform == "darwin"
-        and isinstance(from_fs, LocalFileSystem)
-    ):
-        # NOTE: reflink on macos also clones src permissions
+    if link == "reflink" and isinstance(from_fs, LocalFileSystem):
+        # NOTE: reflink may or may not clone src permissions
         os.chmod(to_path, 0o666 & ~umask)
 
 
