@@ -1,4 +1,5 @@
 import errno
+import os
 import stat
 from os import fspath, umask
 from pathlib import Path
@@ -37,12 +38,12 @@ def test_reflink(test_dir):
     assert stat_mode == (0o666 & ~umask(0))
 
 
+@pytest.mark.skipif(os.name != "nt", reason="only run in Windows")
 def test_reflink_unsupported_on_windows(test_dir, mocker):
     src = test_dir / "source"
     dest = test_dir / "dest"
     src.write_bytes(b"content")
 
-    mocker.patch("platform.system", mocker.MagicMock(return_value="Windows"))
     with pytest.raises(OSError) as exc:
         reflink(fspath(src), fspath(dest))
 

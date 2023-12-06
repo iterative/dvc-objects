@@ -2,10 +2,8 @@ import ctypes
 import errno
 import logging
 import os
-import platform
 import stat
 import sys
-import functools
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -34,7 +32,6 @@ def symlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
     os.symlink(source, link_name)
 
 
-@functools.lru_cache(maxsize=1)
 def _clonefile():
     def _cdll(name):
         return ctypes.CDLL(name, use_errno=True)
@@ -68,53 +65,43 @@ def _clonefile():
     return clonefile
 
 
-def _reflink_darwin(src: "AnyFSPath", dst: "AnyFSPath") -> None:
+# NOTE: reflink may (macos) or may not (linux) clone permissions,
+# so the user needs to handle those himself.
+if sys.platform == "darwin":
     clonefile = _clonefile()
 
-    ret = clonefile(
-        ctypes.c_char_p(os.fsencode(src)),
-        ctypes.c_char_p(os.fsencode(dst)),
-        ctypes.c_int(0),
-    )
-    if ret:
-        err = ctypes.get_errno()
-        msg = os.strerror(err)
-        raise OSError(err, msg)
+    def reflink(src, dst):
+        ret = clonefile(
+            ctypes.c_char_p(os.fsencode(src)),
+            ctypes.c_char_p(os.fsencode(dst)),
+            ctypes.c_int(0),
+        )
+        if ret:
+            err = ctypes.get_errno()
+            msg = os.strerror(err)
+            raise OSError(err, msg)
 
-
-def _reflink_linux(src: "AnyFSPath", dst: "AnyFSPath") -> None:
+elif sys.platform == "linux":
     import fcntl  # pylint: disable=import-error
-    from contextlib import suppress
 
     FICLONE = 0x40049409
 
-    if sys.platform != "linux":
-        raise AssertionError
-    else:
+    def reflink(src, dst):
         try:
             with open(src, "rb") as s, open(dst, "wb+") as d:
                 fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
         except OSError:
-            with suppress(OSError):
+            try:
                 os.unlink(dst)
+            except OSError:
+                pass
             raise
+else:
 
-
-def reflink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
-    source, link_name = os.fspath(source), os.fspath(link_name)
-
-    # NOTE: reflink may (macos) or may not (linux) clone permissions,
-    # so the user needs to handle those himself.
-
-    system = platform.system()
-    if system == "Darwin":
-        _reflink_darwin(source, link_name)
-    elif system == "Linux":
-        _reflink_linux(source, link_name)
-    else:
+    def reflink(src, dst):
         raise OSError(
             errno.ENOTSUP,
-            f"reflink is not supported on '{system}'",
+            f"reflink is not supported on '{sys.platform}'",
         )
 
 
