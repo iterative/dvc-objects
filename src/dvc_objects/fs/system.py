@@ -100,10 +100,7 @@ elif sys.platform == "linux":
 else:
 
     def reflink(src, dst):
-        raise OSError(
-            errno.ENOTSUP,
-            f"reflink is not supported on '{sys.platform}'",
-        )
+        raise OSError(errno.ENOTSUP, "reflink is not supported")
 
 
 def inode(path: "AnyFSPath") -> int:

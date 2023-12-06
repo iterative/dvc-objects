@@ -1,45 +1,44 @@
-import errno
-import shutil
+import os
 
 import pytest
+from reflink import ReflinkImpossibleError
 from reflink import reflink as pyreflink
-from reflink.error import ReflinkImpossibleError
 
 from dvc_objects.fs.system import hardlink, reflink, symlink
 
-NLINKS = 10000
+NLINKS = 1000
 
 
 @pytest.mark.parametrize(
     "link",
     [pytest.param(pyreflink, id="pyreflink"), reflink, hardlink, symlink],
 )
-def test_link(benchmark, tmp_path, link):
-    (tmp_path / "original").mkdir()
+def test_link(benchmark, tmp_dir_pytest_cache, link):
+    original = tmp_dir_pytest_cache / "original"
+    original.mkdir()
 
+    links = tmp_dir_pytest_cache / "links"
+    links.mkdir()
+
+    (original / "test").write_text("test")
+    try:
+        link(os.fspath(original / "test"), os.fspath(links / "test"))
+    except (OSError, NotImplementedError, ReflinkImpossibleError) as exc:
+        pytest.skip(reason=f"not supported: {exc}")
+
+    paths = []
     for idx in range(NLINKS):
-        (tmp_path / "original" / str(idx)).write_text(str(idx))
+        path = original / str(idx)
+        path.write_text(path.name)
+        paths.append((os.fspath(path), os.fspath(links / path.name)))
 
-    def _setup():
-        try:
-            shutil.rmtree(tmp_path / "links")
-        except FileNotFoundError:
-            pass
+    def setup():
+        for link in links.iterdir():
+            if link.is_file():
+                link.unlink()
 
-        (tmp_path / "links").mkdir()
+    def _link(paths):
+        for src, path in paths:
+            link(src, path)
 
-    original = str(tmp_path / "original")
-    links = str(tmp_path / "links")
-
-    def _link():
-        for idx in range(NLINKS):
-            try:
-                link(f"{original}/{idx}", f"{links}/{idx}")
-            except Exception as exc:
-                if isinstance(exc, (ReflinkImpossibleError, NotImplementedError)) or (
-                    isinstance(exc, OSError) and exc.errno == errno.ENOTSUP
-                ):
-                    pytest.skip(str(exc))
-                raise
-
-    benchmark.pedantic(_link, setup=_setup)
+    benchmark.pedantic(_link, args=(paths,), setup=setup, rounds=10, warmup_rounds=3)
