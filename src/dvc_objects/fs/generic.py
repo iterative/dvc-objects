@@ -2,6 +2,7 @@ import asyncio
 import errno
 import logging
 import os
+import sys
 from contextlib import suppress
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -11,7 +12,7 @@ from fsspec.asyn import get_loop
 from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK
 from .local import LocalFileSystem, localfs
-from .utils import as_atomic
+from .utils import as_atomic, umask
 
 if TYPE_CHECKING:
     from .base import AnyFSPath, FileSystem
@@ -60,6 +61,13 @@ def _link(
 
     func = getattr(to_fs, link)
     func(from_path, to_path)
+    if (
+        link == "reflink"
+        and sys.platform == "darwin"
+        and isinstance(from_fs, LocalFileSystem)
+    ):
+        # NOTE: reflink on macos also clones src permissions
+        os.chmod(to_path, 0o666 & ~umask)
 
 
 def copy(
