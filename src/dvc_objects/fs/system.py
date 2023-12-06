@@ -88,15 +88,28 @@ elif sys.platform == "linux":
     FICLONE = 0x40049409
 
     def reflink(src, dst):
+        src_fd = os.open(src, os.O_RDONLY)
+
         try:
-            with open(src, "rb") as s, open(dst, "wb+") as d:
-                fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
+            dst_fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
         except OSError:
+            os.close(src_fd)
+            raise
+
+        try:
+            fcntl.ioctl(dst_fd, FICLONE, src_fd)
+        except OSError:
+            os.close(src_fd)
+            os.close(dst_fd)
             try:
                 os.unlink(dst)
             except OSError:
                 pass
             raise
+        else:
+            os.close(src_fd)
+            os.close(dst_fd)
+
 else:
 
     def reflink(src, dst):
