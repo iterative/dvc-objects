@@ -36,10 +36,10 @@ Source = "https://github.com/iterative/dvc-objects"
 
 [project.optional-dependencies]
 tests = [
-    "pytest==7.2.0",
-    "pytest-sugar==0.9.6",
-    "pytest-cov==4.0.0",
-    "pytest-mock==3.8.2",
+    "pytest<8,>=7",
+    "pytest-sugar",
+    "pytest-cov>=4.1.0",
+    "pytest-mock",
     "mypy==1.5.1",
     "pytest-benchmark",
     "reflink",
