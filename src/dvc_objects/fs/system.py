@@ -59,8 +59,16 @@ def _clonefile():
             "'clonefile' not supported by the standard library",
         )
 
+    def errcheck(ret, _func, _args):
+        if ret:
+            err = ctypes.get_errno()
+            msg = os.strerror(err)
+            raise OSError(err, msg)
+        return ret
+
     clonefile.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
     clonefile.restype = ctypes.c_int
+    clonefile.errcheck = errcheck
 
     return clonefile
 
@@ -71,15 +79,11 @@ if sys.platform == "darwin":
     clonefile = _clonefile()
 
     def reflink(src, dst):
-        ret = clonefile(
+        clonefile(
             ctypes.c_char_p(os.fsencode(src)),
             ctypes.c_char_p(os.fsencode(dst)),
             ctypes.c_int(0),
         )
-        if ret:
-            err = ctypes.get_errno()
-            msg = os.strerror(err)
-            raise OSError(err, msg)
 
 elif sys.platform == "linux":
     import fcntl  # pylint: disable=import-error
