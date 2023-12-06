@@ -24,9 +24,9 @@ def test_reflink(tmp_dir_pytest_cache):
 
 
 @pytest.mark.skipif(os.name != "nt", reason="only run in Windows")
-def test_reflink_unsupported_on_windows(test_dir, mocker):
-    src = test_dir / "source"
-    dest = test_dir / "dest"
+def test_reflink_unsupported_on_windows(tmp_dir_pytest_cache):
+    src = tmp_dir_pytest_cache/ "source"
+    dest = tmp_dir_pytest_cache / "dest"
     src.write_bytes(b"content")
 
     with pytest.raises(OSError) as exc:
