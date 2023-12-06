@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+umask = os.umask(0)
+os.umask(umask)
 
 LOCAL_CHUNK_SIZE = 2**20  # 1 MB
 COPY_PBAR_MIN_SIZE = 2**30  # 1 GB
@@ -189,6 +191,9 @@ def copyfile(
 
     try:
         system.reflink(src, dest)
+        if sys.platform == "darwin":
+            # NOTE: reflink on macos also clones src permissions
+            os.chmod(dest, 0o666 & ~umask)
         return
     except OSError:
         pass
