@@ -1,15 +1,18 @@
 import errno
-import pytest
 import shutil
+
+import pytest
 from reflink import reflink as pyreflink
 from reflink.error import ReflinkImpossibleError
-from dvc_objects.fs.system import reflink, hardlink, symlink
+
+from dvc_objects.fs.system import hardlink, reflink, symlink
 
 NLINKS = 10000
 
 
 @pytest.mark.parametrize(
-    "link", [pytest.param(pyreflink, id="pyreflink"), reflink, hardlink, symlink]
+    "link",
+    [pytest.param(pyreflink, id="pyreflink"), reflink, hardlink, symlink],
 )
 def test_link(benchmark, tmp_path, link):
     (tmp_path / "original").mkdir()
