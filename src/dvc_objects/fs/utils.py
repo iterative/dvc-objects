@@ -191,9 +191,8 @@ def copyfile(
 
     try:
         system.reflink(src, dest)
-        if sys.platform == "darwin":
-            # NOTE: reflink on macos also clones src permissions
-            os.chmod(dest, 0o666 & ~umask)
+        # NOTE: reflink may or may not clone src permissions
+        os.chmod(dest, 0o666 & ~umask)
         return
     except OSError:
         pass
