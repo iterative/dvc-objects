@@ -61,13 +61,10 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
                 yield fut.result()
             tasks.update(create_taskset(len(done)))
 
-    def shutdown(  # pylint: disable=arguments-differ
-        self, wait=True, *, cancel_futures=False
-    ):
+    def shutdown(self, wait=True, *, cancel_futures=False):
         if sys.version_info > (3, 9):
-            # pylint: disable=unexpected-keyword-arg
             return super().shutdown(wait=wait, cancel_futures=cancel_futures)
-        else:
+        else:  # noqa: RET505
             with self._shutdown_lock:
                 self._shutdown = True
                 if cancel_futures:
@@ -96,7 +93,7 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
         return False
 
 
-async def batch_coros(
+async def batch_coros(  # noqa: PLR0913, C901
     coros: Sequence[Coroutine],
     batch_size: Optional[int] = None,
     callback: Optional[Callback] = None,
@@ -137,7 +134,7 @@ async def batch_coros(
         for fut in done:
             try:
                 result = fut.result()
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:  # noqa: BLE001
                 if not return_exceptions:
                     for pending_fut in pending:
                         pending_fut.cancel()

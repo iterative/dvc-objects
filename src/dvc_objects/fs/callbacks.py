@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import ParamSpec
 
-    from .._tqdm import Tqdm
+    from dvc_objects._tqdm import Tqdm
 
     _P = ParamSpec("_P")
     _R = TypeVar("_R")
@@ -78,7 +78,7 @@ class _DVCCallbackMixin(_CallbackProtocol):
         @wraps(fn)
         def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
             kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):  # pylint: disable=not-context-manager
+            with self.branch(path1, path2, kw):
                 return wrapped(path1, path2, **kw)
 
         return func
@@ -93,7 +93,7 @@ class _DVCCallbackMixin(_CallbackProtocol):
         @wraps(fn)
         async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
             kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):  # pylint: disable=not-context-manager
+            with self.branch(path1, path2, kw):
                 return await wrapped(path1, path2, **kw)
 
         return func
@@ -141,7 +141,7 @@ class Callback(fsspec.Callback, _DVCCallbackMixin):
             return maybe_callback
         return _FsspecCallbackWrapper(maybe_callback)
 
-    def branch(  # pylint: disable=arguments-differ
+    def branch(
         self,
         path_1: "Union[str, BinaryIO]",
         path_2: str,
@@ -172,7 +172,7 @@ class TqdmCallback(Callback):
 
     @cached_property
     def progress_bar(self):
-        from .._tqdm import Tqdm
+        from dvc_objects._tqdm import Tqdm
 
         progress_bar = (
             self._progress_bar
@@ -210,9 +210,7 @@ class TqdmCallback(Callback):
 
 
 class _FsspecCallbackWrapper(fsspec.callbacks.Callback, _DVCCallbackMixin):
-    def __init__(  # pylint: disable=super-init-not-called
-        self, callback: fsspec.callbacks.Callback
-    ):
+    def __init__(self, callback: fsspec.callbacks.Callback):
         object.__setattr__(self, "_callback", callback)
 
     def __getattr__(self, name: str):

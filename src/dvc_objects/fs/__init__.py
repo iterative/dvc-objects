@@ -136,15 +136,13 @@ def as_filesystem(
         return fs
 
     protos = (fs.protocol,) if isinstance(fs.protocol, str) else fs.protocol
-    if "file" in protos:
-        if klass := registry.get(Schemes.LOCAL):
-            return klass()
+    if "file" in protos and (klass := registry.get(Schemes.LOCAL)):
+        return klass()
 
     # if we have the class in our registry, instantiate with that.
     for proto in protos:
-        if proto in registry:
-            if klass := registry.get(proto):
-                return klass(fs=fs, **fs_args)
+        if proto in registry and (klass := registry.get(proto)):
+            return klass(fs=fs, **fs_args)
 
     # fallback to unregistered subclasses
     for subclass in FileSystem.__subclasses__():

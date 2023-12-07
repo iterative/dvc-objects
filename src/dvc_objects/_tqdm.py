@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from threading import RLock
+from typing import Any, ClassVar, Dict
 
 from tqdm import tqdm
 
@@ -38,14 +39,14 @@ class Tqdm(tqdm):
         " [{elapsed}<{remaining}, {rate_fmt:>11}]"
     )
     BAR_FMT_NOTOTAL = "{desc}{bar:b}|{postfix[info]}{n_fmt} [{elapsed}, {rate_fmt:>11}]"
-    BYTES_DEFAULTS = {
+    BYTES_DEFAULTS: ClassVar[Dict[str, Any]] = {
         "unit": "B",
         "unit_scale": True,
         "unit_divisor": 1024,
         "miniters": 1,
     }
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         iterable=None,
         disable=None,
@@ -53,7 +54,7 @@ class Tqdm(tqdm):
         desc=None,
         leave=False,
         bar_format=None,
-        bytes=False,  # pylint: disable=redefined-builtin
+        bytes=False,  # noqa: A002
         file=None,
         total=None,
         postfix=None,

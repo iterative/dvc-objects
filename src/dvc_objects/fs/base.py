@@ -24,9 +24,9 @@ from typing import (
 from fsspec.asyn import get_loop
 from funcy import once_per_args
 
+from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 from dvc_objects.utils import cached_property
 
-from ..executors import ThreadPoolExecutor, batch_coros
 from .callbacks import DEFAULT_CALLBACK, Callback
 from .errors import RemoteMissingDepsError
 
@@ -143,7 +143,7 @@ class FileSystem:
         return path
 
     @cached_property
-    def fs(self) -> "AbstractFileSystem":  # pylint: disable=method-hidden
+    def fs(self) -> "AbstractFileSystem":
         raise NotImplementedError
 
     @cached_property
@@ -161,7 +161,7 @@ class FileSystem:
 
     def _prepare_credentials(
         self,
-        **config: Dict[str, Any],  # pylint: disable=unused-argument
+        **config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Prepare the arguments for authentication to the
         host filesystem"""
@@ -201,29 +201,29 @@ class FileSystem:
         return entry["size"] == 0
 
     @overload
-    def open(
+    def open(  # noqa: A003
         self,
         path: AnyFSPath,
         mode: Literal["rb", "br", "wb"],
         **kwargs: Any,
-    ) -> "BinaryIO":  # pylint: disable=arguments-differ
+    ) -> "BinaryIO":
         return self.open(path, mode, **kwargs)
 
     @overload
-    def open(
+    def open(  # noqa: A003
         self,
         path: AnyFSPath,
         mode: Literal["r", "rt", "w"] = "r",
         **kwargs: Any,
-    ) -> "TextIO":  # pylint: disable=arguments-differ
+    ) -> "TextIO":
         ...
 
-    def open(
+    def open(  # noqa: A003
         self,
         path: AnyFSPath,
         mode: str = "r",
         **kwargs: Any,
-    ) -> "IO[Any]":  # pylint: disable=arguments-differ
+    ) -> "IO[Any]":
         if "b" in mode:
             kwargs.pop("encoding", None)
         return self.fs.open(path, mode=mode, **kwargs)
@@ -289,7 +289,7 @@ class FileSystem:
             path, encoding=encoding, errors=errors, newline=newline, **kwargs
         )
 
-    def write_text(
+    def write_text(  # noqa: PLR0913
         self,
         path: AnyFSPath,
         value: str,
@@ -360,10 +360,7 @@ class FileSystem:
             loop = get_loop()
             fut = asyncio.run_coroutine_threadsafe(
                 batch_coros(
-                    [
-                        self.fs._exists(p)  # pylint: disable=protected-access
-                        for p in path
-                    ],
+                    [self.fs._exists(p) for p in path],
                     batch_size=jobs,
                     callback=callback,
                 ),
@@ -380,22 +377,22 @@ class FileSystem:
     def symlink(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
         try:
             return self.fs.symlink(from_info, to_info)
-        except AttributeError:
-            raise LinkError("symlink", self, from_info)
+        except AttributeError as e:
+            raise LinkError("symlink", self, from_info) from e
 
     def link(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
         try:
             return self.fs.link(from_info, to_info)
-        except AttributeError:
-            raise LinkError("hardlink", self, from_info)
+        except AttributeError as e:
+            raise LinkError("hardlink", self, from_info) from e
 
     hardlink = link
 
     def reflink(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
         try:
             return self.fs.reflink(from_info, to_info)
-        except AttributeError:
-            raise LinkError("reflink", self, from_info)
+        except AttributeError as e:
+            raise LinkError("reflink", self, from_info) from e
 
     def islink(self, path: AnyFSPath) -> bool:
         try:
@@ -428,7 +425,7 @@ class FileSystem:
     def find(
         self,
         path: Union[AnyFSPath, List[AnyFSPath]],
-        prefix: bool = False,  # pylint: disable=unused-argument
+        prefix: bool = False,
         batch_size: Optional[int] = None,
         **kwargs,
     ) -> Iterator[str]:
@@ -440,10 +437,7 @@ class FileSystem:
             loop = get_loop()
             fut = asyncio.run_coroutine_threadsafe(
                 batch_coros(
-                    [
-                        self.fs._find(p)  # pylint: disable=protected-access
-                        for p in path
-                    ],
+                    [self.fs._find(p) for p in path],
                     batch_size=jobs,
                 ),
                 loop,
@@ -506,10 +500,7 @@ class FileSystem:
             loop = get_loop()
             fut = asyncio.run_coroutine_threadsafe(
                 batch_coros(
-                    [
-                        self.fs._info(p, **kwargs)  # pylint: disable=protected-access
-                        for p in path
-                    ],
+                    [self.fs._info(p, **kwargs) for p in path],
                     batch_size=jobs,
                     callback=callback,
                 ),
@@ -562,7 +553,7 @@ class FileSystem:
             shutil.copyfileobj(
                 fobj,
                 fdest,
-                length=getattr(fdest, "blocksize", None),  # type: ignore
+                length=getattr(fdest, "blocksize", None),  # type: ignore[arg-type]
             )
 
     def walk(self, path: AnyFSPath, **kwargs: Any):
@@ -586,12 +577,12 @@ class FileSystem:
     ) -> Union[int, Dict[AnyFSPath, int]]:
         return self.fs.du(path, total=total, maxdepth=maxdepth, **kwargs)
 
-    def put(
+    def put(  # noqa: PLR0913
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
         callback: "Callback" = DEFAULT_CALLBACK,
-        recursive: bool = False,  # pylint: disable=unused-argument
+        recursive: bool = False,
         batch_size: Optional[int] = None,
     ):
         jobs = batch_size or self.jobs
@@ -614,12 +605,12 @@ class FileSystem:
             put_file = callback.wrap_and_branch(self.put_file)
             list(executor.imap_unordered(put_file, from_infos, to_infos))
 
-    def get(
+    def get(  # noqa: PLR0913
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
         callback: "Callback" = DEFAULT_CALLBACK,
-        recursive: bool = False,  # pylint: disable=unused-argument
+        recursive: bool = False,
         batch_size: Optional[int] = None,
     ) -> None:
         # Currently, the implementation is non-recursive if the paths are
@@ -679,7 +670,7 @@ class FileSystem:
         return self.fs.sign(path, expiration=expiration, **kwargs)
 
 
-class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
+class ObjectFileSystem(FileSystem):
     TRAVERSE_PREFIX_LEN = 3
 
     def makedirs(self, path: AnyFSPath, **kwargs: Any) -> None:
@@ -699,7 +690,7 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
         self,
         path: Union[AnyFSPath, List[AnyFSPath]],
         prefix: bool = False,
-        batch_size: Optional[int] = None,  # pylint: disable=unused-argument
+        batch_size: Optional[int] = None,
         **kwargs,
     ) -> Iterator[str]:
         if isinstance(path, str):
@@ -727,9 +718,7 @@ class ObjectFileSystem(FileSystem):  # pylint: disable=abstract-method
             fut = asyncio.run_coroutine_threadsafe(
                 batch_coros(
                     [
-                        self.fs._find(  # pylint: disable=protected-access
-                            path, prefix=prefix_str
-                        )
+                        self.fs._find(path, prefix=prefix_str)
                         for path, prefix_str in args
                     ],
                     batch_size=jobs,
