@@ -5,7 +5,6 @@ from concurrent import futures
 from itertools import islice
 from typing import (
     Any,
-    Awaitable,
     Callable,
     Coroutine,
     Dict,
@@ -120,7 +119,7 @@ async def batch_coros(
         batch_size = len(coros)
     assert batch_size > 0
 
-    def create_taskset(n: int) -> Dict[Awaitable, int]:
+    def create_taskset(n: int) -> Dict[asyncio.Task, int]:
         return {asyncio.create_task(coro): i for i, coro in islice(it, n)}
 
     it: Iterator[Tuple[int, Coroutine]] = enumerate(coros)
