@@ -1,8 +1,18 @@
 import ntpath
 import posixpath
-from types import ModuleType
-from typing import Callable, Iterable, Iterator, Optional, Sequence, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Tuple,
+)
 from urllib.parse import urlsplit, urlunsplit
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 
 class Path:
@@ -81,7 +91,7 @@ class Path:
         ret.reverse()
 
         if drive:
-            ret = [drive] + ret
+            ret = [drive, *ret]
 
         return tuple(ret)
 
@@ -127,7 +137,6 @@ class Path:
         return left == right or self.isin(left, right)
 
     def overlaps(self, left: str, right: str) -> bool:
-        # pylint: disable=arguments-out-of-order
         return self.isin_or_eq(left, right) or self.isin(right, left)
 
     def relpath(self, path: str, start: Optional[str] = None) -> str:

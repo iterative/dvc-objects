@@ -9,7 +9,8 @@ from concurrent import futures
 from contextlib import contextmanager, suppress
 from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set, Union
 
-from ..executors import ThreadPoolExecutor
+from dvc_objects.executors import ThreadPoolExecutor
+
 from . import system
 from .callbacks import DEFAULT_CALLBACK
 
@@ -73,7 +74,7 @@ def move(src: "AnyFSPath", dst: "AnyFSPath") -> None:
     shutil.move(tmp, dst)
 
 
-def _chmod(func, p, excinfo):  # pylint: disable=unused-argument
+def _chmod(func, p, excinfo):
     perm = os.lstat(p).st_mode
     perm |= stat.S_IWRITE
 
@@ -144,7 +145,7 @@ def makedirs(path, exist_ok: bool = False, mode: Optional[int] = None) -> None:
         )
 
 
-def _copyfile_with_pbar(
+def _copyfile_with_pbar(  # noqa: PLR0913
     src: "AnyFSPath",
     dest: "AnyFSPath",
     total: int,
@@ -289,7 +290,7 @@ def exists(
     return results
 
 
-def _exist_query(
+def _exist_query(  # noqa: PLR0913
     fs: "FileSystem",
     paths: Set["AnyFSPath"],
     paths_lock: threading.Lock,
@@ -311,7 +312,7 @@ def _exist_query(
                     callback.relative_update()
 
 
-def _list_query(
+def _list_query(  # noqa: PLR0913
     fs: "FileSystem",
     paths: Set["AnyFSPath"],
     paths_lock: threading.Lock,

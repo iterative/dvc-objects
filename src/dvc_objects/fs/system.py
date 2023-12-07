@@ -36,21 +36,21 @@ def _clonefile():
     def _cdll(name):
         return ctypes.CDLL(name, use_errno=True)
 
-    LIBC = "libc.dylib"
-    LIBC_FALLBACK = "/usr/lib/libSystem.dylib"
+    libc = "libc.dylib"
+    libc_fallback = "/usr/lib/libSystem.dylib"
     try:
-        clib = _cdll(LIBC)
+        clib = _cdll(libc)
     except OSError as exc:
         logger.debug(
             "unable to access '%s' (errno '%d'). Falling back to '%s'.",
-            LIBC,
+            libc,
             exc.errno,
-            LIBC_FALLBACK,
+            libc_fallback,
         )
         if exc.errno != errno.ENOENT:
             return None
         # NOTE: trying to bypass System Integrity Protection (SIP)
-        clib = _cdll(LIBC_FALLBACK)
+        clib = _cdll(libc_fallback)
 
     clonefile = getattr(clib, "clonefile", None)
     if clonefile is None:
@@ -83,7 +83,7 @@ if sys.platform == "darwin" and (clonefile := _clonefile()):
         )
 
 elif sys.platform == "linux":
-    import fcntl  # pylint: disable=import-error
+    import fcntl
 
     FICLONE = 0x40049409
 

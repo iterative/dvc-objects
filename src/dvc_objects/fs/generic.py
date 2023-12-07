@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 from fsspec.asyn import get_loop
 
-from ..executors import ThreadPoolExecutor, batch_coros
+from dvc_objects.executors import ThreadPoolExecutor, batch_coros
+
 from .callbacks import DEFAULT_CALLBACK
 from .local import LocalFileSystem, localfs
 from .utils import as_atomic, umask
@@ -36,10 +37,9 @@ def log_exceptions(func: Callable) -> Callable:
         try:
             func(from_fs, from_path, to_fs, to_path, *args, **kwargs)
             return 0
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:
             # NOTE: this means we ran out of file descriptors and there is no
             # reason to try to proceed, as we will hit this error anyways.
-            # pylint: disable=no-member
             if isinstance(exc, OSError) and exc.errno == errno.EMFILE:
                 raise
             logger.exception("failed to transfer '%s'", from_path)
@@ -65,7 +65,7 @@ def _link(
         os.chmod(to_path, 0o666 & ~umask)
 
 
-def copy(
+def copy(  # noqa: PLR0913
     from_fs: "FileSystem",
     from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",
@@ -76,7 +76,7 @@ def copy(
 ) -> None:
     # NOTE: We intentionally do not use fs.get()/fs.put() here.
     # get/put support batching but also include fsspec overhead from doing path
-    # and recursive directory expension that we don't want in copy/transfer
+    # and recursive directory expansion that we don't want in copy/transfer
 
     if isinstance(from_path, str):
         from_path = [from_path]
@@ -115,7 +115,7 @@ def copy(
                 return put_file(
                     fobj, to_p, size=size, callback=callback, **put_file_kwargs
                 )
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             if on_error is not None:
                 on_error(from_p, to_p, exc)
             else:
@@ -129,7 +129,7 @@ def copy(
         list(executor.imap_unordered(_copy_one, from_path, to_path))
 
 
-def _put(
+def _put(  # noqa: PLR0913
     from_paths: List["AnyFSPath"],
     to_fs: "FileSystem",
     to_paths: List["AnyFSPath"],
@@ -146,7 +146,7 @@ def _put(
     def _put_one(from_path: "AnyFSPath", to_path: "AnyFSPath"):
         try:
             return put_file(from_path, to_path, callback=callback, **put_file_kwargs)
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             if on_error is not None:
                 on_error(from_path, to_path, exc)
             else:
@@ -156,9 +156,7 @@ def _put(
         return _put_one(from_paths[0], to_paths[0])
 
     if to_fs.fs.async_impl:
-        put_coro = callback.wrap_and_branch_coro(
-            to_fs.fs._put_file  # pylint: disable=protected-access
-        )
+        put_coro = callback.wrap_and_branch_coro(to_fs.fs._put_file)
         loop = get_loop()
         fut = asyncio.run_coroutine_threadsafe(
             batch_coros(
@@ -184,7 +182,7 @@ def _put(
         list(executor.imap_unordered(_put_one, from_paths, to_paths))
 
 
-def _get(
+def _get(  # noqa: PLR0913, C901
     from_fs: "FileSystem",
     from_paths: List["AnyFSPath"],
     to_paths: List["AnyFSPath"],
@@ -204,7 +202,7 @@ def _get(
                 return get_file(
                     from_path, tmp_file, callback=callback, **get_file_kwargs
                 )
-            except Exception as exc:  # pylint: disable=broad-except
+            except Exception as exc:  # noqa: BLE001
                 if on_error is not None:
                     on_error(from_path, to_path, exc)
                 else:
@@ -216,9 +214,7 @@ def _get(
     if from_fs.fs.async_impl:
 
         async def _get_one_coro(from_path: "AnyFSPath", to_path: "AnyFSPath"):
-            get_coro = callback.wrap_and_branch_coro(
-                from_fs.fs._get_file  # pylint: disable=protected-access
-            )
+            get_coro = callback.wrap_and_branch_coro(from_fs.fs._get_file)
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
                 return await get_coro(
                     from_path, tmp_file, callback=callback, **get_file_kwargs
@@ -249,7 +245,7 @@ def _get(
         list(executor.imap_unordered(_get_one, from_paths, to_paths))
 
 
-def _try_links(
+def _try_links(  # noqa: PLR0913
     links: List["str"],
     from_fs: "FileSystem",
     from_path: "AnyFSPath",
@@ -293,7 +289,7 @@ def _try_links(
     raise OSError(errno.ENOTSUP, "no more link types left to try out") from error
 
 
-def transfer(
+def transfer(  # noqa: PLR0912, PLR0913, C901,
     from_fs: "FileSystem",
     from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",
@@ -360,7 +356,7 @@ def transfer(
                 on_error(from_p, to_p, exc)
             else:
                 raise
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception as exc:  # noqa: BLE001
             if on_error is not None:
                 on_error(from_p, to_p, exc)
             else:

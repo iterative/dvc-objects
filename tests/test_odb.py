@@ -13,12 +13,12 @@ def test_odb(memfs):
     assert odb.fs is memfs
     assert odb.path == "/odb"
     assert odb.read_only is False
-    assert odb == odb == ObjectDB(memfs, "/odb")
+    assert odb == odb == ObjectDB(memfs, "/odb")  # noqa: PLR0124
     assert hash(odb) == hash(odb)
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data,expected",
     [(b"contents", b"contents"), (BytesIO(b"contents"), b"contents")],
 )
 def test_add_bytes(memfs, data, expected):
@@ -100,7 +100,7 @@ def test_exists_prefix(memfs):
 
 
 @pytest.mark.parametrize(
-    "oid, found",
+    "oid,found",
     [
         ("", []),
         ("1", []),
@@ -113,7 +113,7 @@ def test_exists_prefix_ambiguous(memfs, oid, found):
     odb.add_bytes("123456", b"content")
     odb.add_bytes("123450", b"content")
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError) as exc:  # noqa: PT011
         assert odb.exists_prefix(oid)
     assert exc.value.args == (oid, found)
 
@@ -143,21 +143,21 @@ def test_get(memfs):
 def test_path_to_oid():
     odb = ObjectDB(FileSystem(), "/odb")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         assert odb.path_to_oid("/12/34") == "1234"
 
     assert odb.path_to_oid("/odb/12/34") == "1234"
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         assert odb.path_to_oid("/odb/12/34/56")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         assert odb.path_to_oid("/odb/12/34/abcde12")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         odb.path_to_oid("bar")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         odb.path_to_oid("/b/ar")
 
 
@@ -258,7 +258,7 @@ def test_list_oids(mocker):
 
 
 @pytest.mark.parametrize(
-    "prefix_len, extra_prefixes",
+    "prefix_len,extra_prefixes",
     [
         (2, []),
         (3, [f"{i:03x}" for i in range(1, 16)]),

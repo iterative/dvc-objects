@@ -15,7 +15,6 @@ from .utils import copyfile, makedirs, move, remove, tmp_fname
 logger = logging.getLogger(__name__)
 
 
-# pylint:disable=abstract-method, arguments-differ
 class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     sep = os.sep
 
@@ -52,9 +51,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
     def isdir(self, path) -> bool:
         return os.path.isdir(path)
 
-    def walk(  # pylint: disable=arguments-renamed
-        self, path, maxdepth=None, topdown=True, detail=False, **kwargs
-    ):
+    def walk(self, path, maxdepth=None, topdown=True, detail=False, **kwargs):
         """Directory fs generator.
 
         See `os.walk` for the docs. Differences:
@@ -134,8 +131,8 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             self.rm_file(tmp_info)
             raise
 
-    def open(self, path, mode="r", encoding=None, **kwargs):
-        return open(path, mode=mode, encoding=encoding)
+    def open(self, path, mode="r", encoding=None, **kwargs):  # noqa: A003
+        return open(path, mode=mode, encoding=encoding)  # noqa: SIM115
 
     def symlink(self, path1, path2):
         return self.fs.symlink(path1, path2)

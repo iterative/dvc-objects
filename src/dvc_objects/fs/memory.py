@@ -1,7 +1,7 @@
 from .base import FileSystem
 
 
-class MemoryFileSystem(FileSystem):  # pylint:disable=abstract-method
+class MemoryFileSystem(FileSystem):
     protocol = "memory"
     PARAM_CHECKSUM = "md5"
 

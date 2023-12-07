@@ -71,7 +71,7 @@ def dir_path(tmp_path):
         ("тест", "проверка"),
         (
             "code.py",
-            "import sys\nimport shutil\n" "shutil.copyfile(sys.argv[1], sys.argv[2])",
+            "import sys\nimport shutil\nshutil.copyfile(sys.argv[1], sys.argv[2])",
         ),
     ]:
         (tmp_path / file).write_text(contents, encoding="utf8")

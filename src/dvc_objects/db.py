@@ -125,7 +125,7 @@ class ObjectDB:
         path = self.oid_to_path(oid)
         self.fs.put_file(fobj, path, size=size)
 
-    def add(
+    def add(  # noqa: PLR0913
         self,
         path: Union["AnyFSPath", List["AnyFSPath"]],
         fs: "FileSystem",
@@ -256,8 +256,9 @@ class ObjectDB:
             count += 1
             if count > limit:
                 logger.debug(
-                    "`_list_oids()` returned max '{}' oids, "
-                    "skipping remaining results".format(limit)
+                    "`_list_oids()` returned max %r oids, "
+                    "skipping remaining results",
+                    limit,
                 )
                 return
 
@@ -300,7 +301,7 @@ class ObjectDB:
             remote_size = total_prefixes * len(remote_oids)
         else:
             remote_size = total_prefixes
-        logger.debug(f"Estimated remote size: {remote_size} files")
+        logger.debug("Estimated remote size: %s files", remote_size)
         return remote_size, remote_oids
 
     def _list_oids_traverse(self, remote_size, remote_oids, jobs=None):
@@ -338,7 +339,7 @@ class ObjectDB:
 
         yield from self._list_oids(prefixes=traverse_prefixes, jobs=jobs)
 
-    def all(self, jobs=None):
+    def all(self, jobs=None):  # noqa: A003
         """Iterate over all oids in this fs.
 
         Hashes will be fetched in parallel threads according to prefix
@@ -355,7 +356,7 @@ class ObjectDB:
         Hashes will be queried individually.
         """
         paths = list(map(self.oid_to_path, oids))
-        logger.debug(f"Querying {len(paths)} oids via object_exists")
+        logger.debug("Querying %s oids via object_exists", len(paths))
         in_remote = self.fs.exists(paths, batch_size=jobs)
         yield from itertools.compress(oids, in_remote)
 
@@ -428,10 +429,10 @@ class ObjectDB:
             traverse_weight = traverse_pages
         if len(oids) < traverse_weight and not always_traverse:
             logger.debug(
-                "Large remote ('{}' oids < '{}' traverse weight), "
-                "using object_exists for remaining oids".format(
-                    len(oids), traverse_weight
-                )
+                "Large remote (%r oids < %r traverse weight), "
+                "using object_exists for remaining oids",
+                len(oids),
+                traverse_weight,
             )
             remaining_oids = oids - remote_oids
             ret = list(oids & remote_oids)
@@ -441,7 +442,7 @@ class ObjectDB:
             )
             return ret
 
-        logger.debug(f"Querying '{len(oids)}' oids via traverse")
+        logger.debug("Querying %r oids via traverse", len(oids))
         remote_oids = self._list_oids_traverse(remote_size, remote_oids, jobs=jobs)
         callback = partial(progress, "querying", remote_size)
         return list(oids & set(wrap_iter(remote_oids, callback)))

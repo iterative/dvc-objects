@@ -8,10 +8,15 @@ import pytest
 from dvc_objects.fs.system import reflink
 
 
+@pytest.fixture
+def test_dir(make_tmp_dir_pytest_cache):
+    return make_tmp_dir_pytest_cache("reflink_test")
+
+
 @pytest.mark.xfail(raises=OSError, strict=False)
-def test_reflink(tmp_dir_pytest_cache):
-    src = tmp_dir_pytest_cache / "source"
-    dest = tmp_dir_pytest_cache / "dest"
+def test_reflink(test_dir):
+    src = test_dir / "source"
+    dest = test_dir / "dest"
 
     src.write_bytes(b"content")
     reflink(fspath(src), fspath(dest))
@@ -24,12 +29,12 @@ def test_reflink(tmp_dir_pytest_cache):
 
 
 @pytest.mark.skipif(os.name != "nt", reason="only run in Windows")
-def test_reflink_unsupported_on_windows(tmp_dir_pytest_cache):
-    src = tmp_dir_pytest_cache / "source"
-    dest = tmp_dir_pytest_cache / "dest"
+def test_reflink_unsupported_on_windows(test_dir):
+    src = test_dir / "source"
+    dest = test_dir / "dest"
     src.write_bytes(b"content")
 
-    with pytest.raises(OSError) as exc:
+    with pytest.raises(OSError) as exc:  # noqa: PT011
         reflink(fspath(src), fspath(dest))
 
     assert exc.value.errno == errno.ENOTSUP

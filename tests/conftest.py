@@ -13,6 +13,10 @@ def memfs():
 
 @pytest.fixture(scope="session")
 def make_tmp_dir_pytest_cache(request):
+    """Create a test directory within cache directory.
+
+    The cache directory by default, is in the root of the repo, where reflink
+    may be supported."""
     cache = request.config.cache
     path = cache.mkdir("dvc_objects_tests")
 
@@ -22,13 +26,3 @@ def make_tmp_dir_pytest_cache(request):
         return Path(tmp_dir.name)
 
     return inner
-
-
-@pytest.fixture
-def tmp_dir_pytest_cache(make_tmp_dir_pytest_cache):
-    """Create a test directory within cache directory.
-
-    The cache directory by default, is in the root of the repo, where reflink
-    may be supported.
-    """
-    return make_tmp_dir_pytest_cache("tmp")

@@ -1,7 +1,8 @@
 import os
 
 import pytest
-from reflink import reflink as pyreflink, ReflinkImpossibleError
+from reflink import ReflinkImpossibleError
+from reflink import reflink as pyreflink
 
 from dvc_objects.fs.system import hardlink, reflink, symlink
 
