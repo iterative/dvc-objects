@@ -65,7 +65,7 @@ def _link(
         os.chmod(to_path, 0o666 & ~umask)
 
 
-def copy(  # noqa: PLR0913
+def copy(
     from_fs: "FileSystem",
     from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",
@@ -129,7 +129,7 @@ def copy(  # noqa: PLR0913
         list(executor.imap_unordered(_copy_one, from_path, to_path))
 
 
-def _put(  # noqa: PLR0913
+def _put(
     from_paths: List["AnyFSPath"],
     to_fs: "FileSystem",
     to_paths: List["AnyFSPath"],
@@ -182,7 +182,7 @@ def _put(  # noqa: PLR0913
         list(executor.imap_unordered(_put_one, from_paths, to_paths))
 
 
-def _get(  # noqa: PLR0913, C901
+def _get(  # noqa: C901
     from_fs: "FileSystem",
     from_paths: List["AnyFSPath"],
     to_paths: List["AnyFSPath"],
@@ -245,7 +245,7 @@ def _get(  # noqa: PLR0913, C901
         list(executor.imap_unordered(_get_one, from_paths, to_paths))
 
 
-def _try_links(  # noqa: PLR0913
+def _try_links(
     links: List["str"],
     from_fs: "FileSystem",
     from_path: "AnyFSPath",
@@ -289,7 +289,7 @@ def _try_links(  # noqa: PLR0913
     raise OSError(errno.ENOTSUP, "no more link types left to try out") from error
 
 
-def transfer(  # noqa: PLR0912, PLR0913, C901,
+def transfer(  # noqa: PLR0912, C901
     from_fs: "FileSystem",
     from_path: Union["AnyFSPath", List["AnyFSPath"]],
     to_fs: "FileSystem",

@@ -125,7 +125,7 @@ class ObjectDB:
         path = self.oid_to_path(oid)
         self.fs.put_file(fobj, path, size=size)
 
-    def add(  # noqa: PLR0913
+    def add(
         self,
         path: Union["AnyFSPath", List["AnyFSPath"]],
         fs: "FileSystem",

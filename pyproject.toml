@@ -178,3 +178,6 @@ strict = true
 
 [tool.ruff.lint.isort]
 known-first-party = ["dvc_objects"]
+
+[tool.ruff.lint.pylint]
+max-args = 10

@@ -289,7 +289,7 @@ class FileSystem:
             path, encoding=encoding, errors=errors, newline=newline, **kwargs
         )
 
-    def write_text(  # noqa: PLR0913
+    def write_text(
         self,
         path: AnyFSPath,
         value: str,
@@ -577,7 +577,7 @@ class FileSystem:
     ) -> Union[int, Dict[AnyFSPath, int]]:
         return self.fs.du(path, total=total, maxdepth=maxdepth, **kwargs)
 
-    def put(  # noqa: PLR0913
+    def put(
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
@@ -605,7 +605,7 @@ class FileSystem:
             put_file = callback.wrap_and_branch(self.put_file)
             list(executor.imap_unordered(put_file, from_infos, to_infos))
 
-    def get(  # noqa: PLR0913
+    def get(
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
