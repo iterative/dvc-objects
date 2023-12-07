@@ -40,7 +40,7 @@ tests = [
     "pytest-sugar",
     "pytest-cov>=4.1.0",
     "pytest-mock",
-    "mypy==1.5.1",
+    "mypy==1.7.1",
     "pytest-benchmark",
     "reflink",
 ]
