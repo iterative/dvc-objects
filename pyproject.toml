@@ -40,12 +40,12 @@ tests = [
     "pytest-sugar",
     "pytest-cov>=4.1.0",
     "pytest-mock",
-    "mypy==1.7.1",
     "pytest-benchmark",
     "reflink",
 ]
 dev = [
     "dvc-objects[tests]",
+    "mypy==1.7.1",
     "types-tqdm",
 ]
 
@@ -57,7 +57,7 @@ namespaces = false
 dvc_objects = ["py.typed"]
 
 [tool.pytest.ini_options]
-addopts = "-ra -Werror"
+addopts = "-ra -Werror --benchmark-skip"
 
 [tool.coverage.run]
 branch = true
