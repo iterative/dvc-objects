@@ -93,7 +93,7 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
         return False
 
 
-async def batch_coros(  # noqa: PLR0913, C901
+async def batch_coros(  # noqa: C901
     coros: Sequence[Coroutine],
     batch_size: Optional[int] = None,
     callback: Optional[Callback] = None,

@@ -145,7 +145,7 @@ def makedirs(path, exist_ok: bool = False, mode: Optional[int] = None) -> None:
         )
 
 
-def _copyfile_with_pbar(  # noqa: PLR0913
+def _copyfile_with_pbar(
     src: "AnyFSPath",
     dest: "AnyFSPath",
     total: int,
@@ -290,7 +290,7 @@ def exists(
     return results
 
 
-def _exist_query(  # noqa: PLR0913
+def _exist_query(
     fs: "FileSystem",
     paths: Set["AnyFSPath"],
     paths_lock: threading.Lock,
@@ -312,7 +312,7 @@ def _exist_query(  # noqa: PLR0913
                     callback.relative_update()
 
 
-def _list_query(  # noqa: PLR0913
+def _list_query(
     fs: "FileSystem",
     paths: Set["AnyFSPath"],
     paths_lock: threading.Lock,
