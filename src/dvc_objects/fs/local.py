@@ -92,7 +92,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
         parent = self._parent(rpath)
         makedirs(parent, exist_ok=True)
         tmp_file = os.path.join(parent, tmp_fname())
-        copyfile(lpath, tmp_file, callback=callback)
+        copyfile(lpath, tmp_file)
         os.replace(tmp_file, rpath)
 
     def get_file(self, rpath, lpath, callback=None, **kwargs):
@@ -101,7 +101,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             self.makedirs(lpath, exist_ok=True)
             return
 
-        copyfile(rpath, lpath, callback=callback)
+        copyfile(rpath, lpath)
 
     def mv(self, path1, path2, **kwargs):
         self.makedirs(self._parent(path2), exist_ok=True)

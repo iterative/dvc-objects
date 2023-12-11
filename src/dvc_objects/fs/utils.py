@@ -145,48 +145,12 @@ def makedirs(path, exist_ok: bool = False, mode: Optional[int] = None) -> None:
         )
 
 
-def _copyfile_with_pbar(
-    src: "AnyFSPath",
-    dest: "AnyFSPath",
-    total: int,
-    callback: Optional["Callback"] = None,
-    no_progress_bar: bool = False,
-    name: Optional[str] = None,
-):
-    from .callbacks import Callback
-
-    name = name if name else os.path.basename(dest)
-
-    if callback:
-        callback.set_size(total)
-
-    with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
-        with Callback.as_tqdm_callback(
-            callback,
-            size=total,
-            bytes=True,
-            disable=no_progress_bar,
-            desc=name,
-        ) as cb:
-            wrapped = cb.wrap_attr(fdest, "write")
-            while True:
-                buf = fsrc.read(LOCAL_CHUNK_SIZE)
-                if not buf:
-                    break
-                wrapped.write(buf)
-
-    if callback:
-        callback.absolute_update(total)
-
-
 def copyfile(
     src: "AnyFSPath",
     dest: "AnyFSPath",
     **kwargs,
 ) -> None:
     """Copy file with progress bar"""
-    total = os.stat(src).st_size
-
     if os.path.isdir(dest):
         dest = os.path.join(dest, os.path.basename(src))
 
@@ -197,12 +161,7 @@ def copyfile(
         return
     except OSError:
         pass
-
-    if total < COPY_PBAR_MIN_SIZE:
-        shutil.copyfile(src, dest)
-        return
-
-    _copyfile_with_pbar(src, dest, total, **kwargs)
+    shutil.copyfile(src, dest)
 
 
 def tmp_fname(fname: "AnyFSPath" = "") -> "AnyFSPath":
