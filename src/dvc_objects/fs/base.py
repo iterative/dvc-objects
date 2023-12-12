@@ -22,7 +22,6 @@ from typing import (
 )
 
 from fsspec.asyn import get_loop
-from funcy import once_per_args
 
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 from dvc_objects.utils import cached_property
@@ -57,33 +56,6 @@ class LinkError(OSError):
             errno.EPERM,
             f"{link} is not supported for {fs.protocol} by {type(fs)}",
             path,
-        )
-
-
-@once_per_args
-def check_required_version(
-    pkg: str, dist: str = "dvc_objects", log_level=logging.WARNING
-):
-    from importlib import metadata
-
-    from packaging.requirements import InvalidRequirement, Requirement
-
-    try:
-        reqs = {
-            r.name: r.specifier for r in map(Requirement, metadata.requires(dist) or [])
-        }
-        version = metadata.version(pkg)
-    except (metadata.PackageNotFoundError, InvalidRequirement):
-        return
-
-    specifier = reqs.get(pkg)
-    if specifier and version and version not in specifier:
-        logger.log(
-            log_level,
-            "'%s%s' is required, but you have %r installed which is incompatible.",
-            pkg,
-            specifier,
-            version,
         )
 
 
@@ -176,7 +148,6 @@ class FileSystem:
     def _check_requires(self, **kwargs):
         from .scheme import Schemes
 
-        check_required_version(pkg="fsspec")
         missing = self.get_missing_deps()
         if not missing:
             return
