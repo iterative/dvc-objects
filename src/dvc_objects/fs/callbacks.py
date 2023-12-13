@@ -65,13 +65,6 @@ class ScopedCallback(fsspec.Callback):
 
 
 class Callback(ScopedCallback):
-    def __getattr__(self, item):
-        if item in ["wrap_fn", "wrap_coro", "wrap_and_branch", "wrap_and_branch_coro"]:
-            raise AttributeError(
-                f"{type(self).__name__!r} object has no attribute {item!r}"
-            )
-        return super().__getattr__(item)
-
     def relative_update(self, inc: int = 1) -> None:
         inc = inc if inc is not None else 0
         return super().relative_update(inc)
