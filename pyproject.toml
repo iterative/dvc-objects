@@ -22,12 +22,9 @@ classifiers = [
 requires-python = ">=3.8"
 dynamic = ["version"]
 dependencies = [
-    "tqdm>=4.63.1,<5",
     "shortuuid>=0.5.0",
     "funcy>=1.14",
     "fsspec>=2022.10.0",
-    "typing-extensions>=3.7.4",
-    "packaging>=19",
 ]
 
 [project.urls]
@@ -42,11 +39,13 @@ tests = [
     "pytest-mock",
     "pytest-benchmark",
     "reflink",
+    "tqdm>=4.63.1,<5",
 ]
 dev = [
     "dvc-objects[tests]",
     "mypy==1.7.1",
     "types-tqdm",
+    "typing-extensions>=3.7.4",
 ]
 
 [tool.setuptools.packages.find]

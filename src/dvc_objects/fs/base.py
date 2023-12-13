@@ -22,12 +22,17 @@ from typing import (
 )
 
 from fsspec.asyn import get_loop
-from funcy import once_per_args
 
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 from dvc_objects.utils import cached_property
 
-from .callbacks import DEFAULT_CALLBACK, Callback
+from .callbacks import (
+    DEFAULT_CALLBACK,
+    Callback,
+    CallbackStream,
+    wrap_and_branch_callback,
+    wrap_fn,
+)
 from .errors import RemoteMissingDepsError
 
 if TYPE_CHECKING:
@@ -57,33 +62,6 @@ class LinkError(OSError):
             errno.EPERM,
             f"{link} is not supported for {fs.protocol} by {type(fs)}",
             path,
-        )
-
-
-@once_per_args
-def check_required_version(
-    pkg: str, dist: str = "dvc_objects", log_level=logging.WARNING
-):
-    from importlib import metadata
-
-    from packaging.requirements import InvalidRequirement, Requirement
-
-    try:
-        reqs = {
-            r.name: r.specifier for r in map(Requirement, metadata.requires(dist) or [])
-        }
-        version = metadata.version(pkg)
-    except (metadata.PackageNotFoundError, InvalidRequirement):
-        return
-
-    specifier = reqs.get(pkg)
-    if specifier and version and version not in specifier:
-        logger.log(
-            log_level,
-            "'%s%s' is required, but you have %r installed which is incompatible.",
-            pkg,
-            specifier,
-            version,
         )
 
 
@@ -176,7 +154,6 @@ class FileSystem:
     def _check_requires(self, **kwargs):
         from .scheme import Schemes
 
-        check_required_version(pkg="fsspec")
         missing = self.get_missing_deps()
         if not missing:
             return
@@ -367,9 +344,10 @@ class FileSystem:
                 loop,
             )
             return fut.result()
-        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
-        with executor:
-            return list(executor.map(callback.wrap_fn(self.fs.exists), path))
+
+        func = wrap_fn(callback, self.fs.exists)
+        with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
+            return list(executor.map(func, path))
 
     def lexists(self, path: AnyFSPath) -> bool:
         return self.fs.lexists(path)
@@ -507,10 +485,11 @@ class FileSystem:
                 loop,
             )
             return fut.result()
-        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
-        with executor:
-            func = partial(self.fs.info, **kwargs)
-            return list(executor.map(callback.wrap_fn(func), path))
+
+        func = partial(self.fs.info, **kwargs)
+        wrapped = wrap_fn(callback, func)
+        with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
+            return list(executor.map(wrapped, path))
 
     def mkdir(
         self, path: AnyFSPath, create_parents: bool = True, **kwargs: Any
@@ -531,7 +510,7 @@ class FileSystem:
         if size:
             callback.set_size(size)
         if hasattr(from_file, "read"):
-            stream = callback.wrap_attr(cast("BinaryIO", from_file))
+            stream = cast("BinaryIO", CallbackStream(from_file, callback))
             self.upload_fobj(stream, to_info, size=size)
         else:
             assert isinstance(from_file, str)
@@ -602,7 +581,7 @@ class FileSystem:
         callback.set_size(len(from_infos))
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
         with executor:
-            put_file = callback.wrap_and_branch(self.put_file)
+            put_file = wrap_and_branch_callback(callback, self.put_file)
             list(executor.imap_unordered(put_file, from_infos, to_infos))
 
     def get(
@@ -621,7 +600,7 @@ class FileSystem:
             localfs.makedirs(localfs.path.parent(lpath), exist_ok=True)
             self.fs.get_file(rpath, lpath, **kwargs)
 
-        get_file = callback.wrap_and_branch(get_file)
+        get_file = wrap_and_branch_callback(callback, get_file)
 
         if isinstance(from_info, list) and isinstance(to_info, list):
             from_infos: List[AnyFSPath] = from_info

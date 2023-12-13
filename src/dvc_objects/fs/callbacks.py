@@ -1,13 +1,13 @@
 from contextlib import ExitStack
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Dict, Optional, Protocol, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import fsspec
 
 from dvc_objects.utils import cached_property
 
 if TYPE_CHECKING:
-    from typing import Awaitable, BinaryIO, Callable, TextIO, Union
+    from typing import BinaryIO, Callable, TypeVar, Union
 
     from typing_extensions import ParamSpec
 
@@ -17,87 +17,33 @@ if TYPE_CHECKING:
     _R = TypeVar("_R")
 
 
-class _CallbackProtocol(Protocol):
-    def relative_update(self, inc: int = 1) -> None:
-        ...
+class CallbackStream:
+    def __init__(self, stream, callback, method="read"):
+        self.stream = stream
+        if method == "write":
 
-    def branch(
-        self,
-        path_1: "Union[str, BinaryIO]",
-        path_2: str,
-        kwargs: Dict[str, Any],
-        child: Optional["Callback"] = None,
-    ) -> "Callback":
-        ...
+            @wraps(stream.write)
+            def write(data, *args, **kwargs):
+                res = stream.write(data, *args, **kwargs)
+                callback.relative_update(len(data))
+                return res
+
+            self.write = write
+        else:
+
+            @wraps(stream.read)
+            def read(*args, **kwargs):
+                data = stream.read(*args, **kwargs)
+                callback.relative_update(len(data))
+                return data
+
+            self.read = read
+
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
 
-class _DVCCallbackMixin(_CallbackProtocol):
-    @overload
-    def wrap_attr(self, fobj: "BinaryIO", method: str = "read") -> "BinaryIO":
-        ...
-
-    @overload
-    def wrap_attr(self, fobj: "TextIO", method: str = "read") -> "TextIO":
-        ...
-
-    def wrap_attr(
-        self, fobj: "Union[TextIO, BinaryIO]", method: str = "read"
-    ) -> "Union[TextIO, BinaryIO]":
-        from tqdm.utils import CallbackIOWrapper
-
-        wrapped = CallbackIOWrapper(self.relative_update, fobj, method)
-        return cast("Union[TextIO, BinaryIO]", wrapped)
-
-    def wrap_fn(self, fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
-        @wraps(fn)
-        def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
-            res = fn(*args, **kwargs)
-            self.relative_update()
-            return res
-
-        return wrapped
-
-    def wrap_coro(
-        self, fn: "Callable[_P, Awaitable[_R]]"
-    ) -> "Callable[_P, Awaitable[_R]]":
-        @wraps(fn)
-        async def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
-            res = await fn(*args, **kwargs)
-            self.relative_update()
-            return res
-
-        return wrapped
-
-    def wrap_and_branch(self, fn: "Callable") -> "Callable":
-        """
-        Wraps a function, and pass a new child callback to it.
-        When the function completes, we increment the parent callback by 1.
-        """
-        wrapped = self.wrap_fn(fn)
-
-        @wraps(fn)
-        def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
-            kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):
-                return wrapped(path1, path2, **kw)
-
-        return func
-
-    def wrap_and_branch_coro(self, fn: "Callable") -> "Callable":
-        """
-        Wraps a coroutine, and pass a new child callback to it.
-        When the coroutine completes, we increment the parent callback by 1.
-        """
-        wrapped = self.wrap_coro(fn)
-
-        @wraps(fn)
-        async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
-            kw: Dict[str, Any] = dict(kwargs)
-            with self.branch(path1, path2, kw):
-                return await wrapped(path1, path2, **kw)
-
-        return func
-
+class ScopedCallback(fsspec.Callback):
     def __enter__(self):
         return self
 
@@ -107,21 +53,24 @@ class _DVCCallbackMixin(_CallbackProtocol):
     def close(self):
         """Handle here on exit."""
 
-    @classmethod
-    def as_tqdm_callback(
-        cls,
-        callback: Optional[fsspec.callbacks.Callback] = None,
-        **tqdm_kwargs: Any,
+    def branch(
+        self,
+        path_1: "Union[str, BinaryIO]",
+        path_2: str,
+        kwargs: Dict[str, Any],
+        child: Optional["Callback"] = None,
     ) -> "Callback":
-        if callback is None:
-            return TqdmCallback(**tqdm_kwargs)
-        if isinstance(callback, Callback):
-            return callback
-        return cast("Callback", _FsspecCallbackWrapper(callback))
+        child = kwargs["callback"] = child or DEFAULT_CALLBACK
+        return child
 
 
-class Callback(fsspec.Callback, _DVCCallbackMixin):
-    """Callback usable as a context manager, and a few helper methods."""
+class Callback(ScopedCallback):
+    def __getattr__(self, item):
+        if item in ["wrap_fn", "wrap_coro", "wrap_and_branch", "wrap_and_branch_coro"]:
+            raise AttributeError(
+                f"{type(self).__name__!r} object has no attribute {item!r}"
+            )
+        return super().__getattr__(item)
 
     def relative_update(self, inc: int = 1) -> None:
         inc = inc if inc is not None else 0
@@ -139,17 +88,17 @@ class Callback(fsspec.Callback, _DVCCallbackMixin):
             return DEFAULT_CALLBACK
         if isinstance(maybe_callback, Callback):
             return maybe_callback
-        return _FsspecCallbackWrapper(maybe_callback)
+        return FsspecCallbackWrapper(maybe_callback)
 
-    def branch(
-        self,
-        path_1: "Union[str, BinaryIO]",
-        path_2: str,
-        kwargs: Dict[str, Any],
-        child: Optional["Callback"] = None,
+    @classmethod
+    def as_tqdm_callback(
+        cls,
+        callback: Optional[fsspec.callbacks.Callback] = None,
+        **tqdm_kwargs: Any,
     ) -> "Callback":
-        child = kwargs["callback"] = child or DEFAULT_CALLBACK
-        return child
+        if callback is None:
+            return TqdmCallback(**tqdm_kwargs)
+        return cls.as_callback(callback)
 
 
 class NoOpCallback(Callback, fsspec.callbacks.NoOpCallback):
@@ -209,7 +158,7 @@ class TqdmCallback(Callback):
         return super().branch(path_1, path_2, kwargs, child=child)
 
 
-class _FsspecCallbackWrapper(fsspec.callbacks.Callback, _DVCCallbackMixin):
+class FsspecCallbackWrapper(Callback):
     def __init__(self, callback: fsspec.callbacks.Callback):
         object.__setattr__(self, "_callback", callback)
 
@@ -219,8 +168,67 @@ class _FsspecCallbackWrapper(fsspec.callbacks.Callback, _DVCCallbackMixin):
     def __setattr__(self, name: str, value: Any):
         setattr(self._callback, name, value)
 
-    def branch(self, *args, **kwargs):
-        return _FsspecCallbackWrapper(self._callback.branch(*args, **kwargs))
+    def relative_update(self, inc: int = 1) -> None:
+        inc = inc if inc is not None else 0
+        return self._callback.relative_update(inc)
+
+    def absolute_update(self, value: int) -> None:
+        value = value if value is not None else self.value
+        return self._callback.absolute_update(value)
+
+    def branch(
+        self,
+        path_1: "Union[str, BinaryIO]",
+        path_2: str,
+        kwargs: Dict[str, Any],
+        child: Optional["Callback"] = None,
+    ) -> "Callback":
+        if not child:
+            self._callback.branch(path_1, path_2, kwargs)
+            child = self.as_callback(kwargs.get("callback"))
+        return super().branch(path_1, path_2, kwargs, child=child)
+
+
+def wrap_fn(callback: "Callback", fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
+    @wraps(fn)
+    def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
+        res = fn(*args, **kwargs)
+        callback.relative_update()
+        return res
+
+    return wrapped
+
+
+def wrap_and_branch_callback(callback: "Callback", fn: "Callable") -> "Callable":
+    """
+    Wraps a function, and pass a new child callback to it.
+    When the function completes, we increment the parent callback by 1.
+    """
+
+    @wraps(fn)
+    def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+        with callback.branch(path1, path2, kwargs):
+            res = fn(path1, path2, **kwargs)
+            callback.relative_update()
+            return res
+
+    return func
+
+
+def wrap_and_branch_coro(callback: "Callback", fn: "Callable") -> "Callable":
+    """
+    Wraps a coroutine, and pass a new child callback to it.
+    When the coroutine completes, we increment the parent callback by 1.
+    """
+
+    @wraps(fn)
+    async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+        with callback.branch(path1, path2, kwargs):
+            res = await fn(path1, path2, **kwargs)
+            callback.relative_update()
+            return res
+
+    return func
 
 
 DEFAULT_CALLBACK = NoOpCallback()
