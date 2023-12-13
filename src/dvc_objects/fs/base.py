@@ -3,7 +3,7 @@ import datetime
 import logging
 import os
 import shutil
-from functools import partial
+from functools import partial, wraps
 from multiprocessing import cpu_count
 from typing import (
     IO,
@@ -26,15 +26,24 @@ from fsspec.asyn import get_loop
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 from dvc_objects.utils import cached_property
 
-from .callbacks import DEFAULT_CALLBACK, Callback
+from .callbacks import (
+    DEFAULT_CALLBACK,
+    Callback,
+    CallbackStream,
+    wrap_and_branch_callback,
+)
 from .errors import RemoteMissingDepsError
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, TextIO
+    from typing import BinaryIO, Callable, TextIO, TypeVar
 
     from fsspec.spec import AbstractFileSystem
+    from typing_extensions import ParamSpec
 
     from .path import Path
+
+    _P = ParamSpec("_P")
+    _R = TypeVar("_R")
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +66,16 @@ class LinkError(OSError):
             f"{link} is not supported for {fs.protocol} by {type(fs)}",
             path,
         )
+
+
+def with_callback(callback: "Callback", fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
+    @wraps(fn)
+    def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
+        res = fn(*args, **kwargs)
+        callback.relative_update()
+        return res
+
+    return wrapped
 
 
 class FileSystem:
@@ -338,9 +357,10 @@ class FileSystem:
                 loop,
             )
             return fut.result()
-        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
-        with executor:
-            return list(executor.map(callback.wrap_fn(self.fs.exists), path))
+
+        func = with_callback(callback, self.fs.exists)
+        with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
+            return list(executor.map(func, path))
 
     def lexists(self, path: AnyFSPath) -> bool:
         return self.fs.lexists(path)
@@ -478,10 +498,11 @@ class FileSystem:
                 loop,
             )
             return fut.result()
-        executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
-        with executor:
-            func = partial(self.fs.info, **kwargs)
-            return list(executor.map(callback.wrap_fn(func), path))
+
+        func = partial(self.fs.info, **kwargs)
+        wrapped = with_callback(callback, func)
+        with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
+            return list(executor.map(wrapped, path))
 
     def mkdir(
         self, path: AnyFSPath, create_parents: bool = True, **kwargs: Any
@@ -502,7 +523,7 @@ class FileSystem:
         if size:
             callback.set_size(size)
         if hasattr(from_file, "read"):
-            stream = callback.wrap_attr(cast("BinaryIO", from_file))
+            stream = cast("BinaryIO", CallbackStream(from_file, callback))
             self.upload_fobj(stream, to_info, size=size)
         else:
             assert isinstance(from_file, str)
@@ -573,7 +594,7 @@ class FileSystem:
         callback.set_size(len(from_infos))
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
         with executor:
-            put_file = callback.wrap_and_branch(self.put_file)
+            put_file = wrap_and_branch_callback(callback, self.put_file)
             list(executor.imap_unordered(put_file, from_infos, to_infos))
 
     def get(
@@ -592,7 +613,7 @@ class FileSystem:
             localfs.makedirs(localfs.path.parent(lpath), exist_ok=True)
             self.fs.get_file(rpath, lpath, **kwargs)
 
-        get_file = callback.wrap_and_branch(get_file)
+        get_file = wrap_and_branch_callback(callback, get_file)
 
         if isinstance(from_info, list) and isinstance(to_info, list):
             from_infos: List[AnyFSPath] = from_info
