@@ -47,7 +47,9 @@ def test_wrap_fsspec():
         assert cb.value == 1
         assert callback.value == 1
 
-        fn = cb.wrap_and_branch(_branch_fn)
-        fn("foo", "bar", callback=callback)
+        with cb.branch("foo", "bar", {}) as child:
+            _branch_fn("foo", "bar", callback=child)
+            cb.relative_update()
+
         assert cb.value == 2
         assert callback.value == 2
