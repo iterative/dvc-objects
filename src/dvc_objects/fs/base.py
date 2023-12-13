@@ -3,7 +3,7 @@ import datetime
 import logging
 import os
 import shutil
-from functools import partial, wraps
+from functools import partial
 from multiprocessing import cpu_count
 from typing import (
     IO,
@@ -31,19 +31,16 @@ from .callbacks import (
     Callback,
     CallbackStream,
     wrap_and_branch_callback,
+    wrap_fn,
 )
 from .errors import RemoteMissingDepsError
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Callable, TextIO, TypeVar
+    from typing import BinaryIO, TextIO
 
     from fsspec.spec import AbstractFileSystem
-    from typing_extensions import ParamSpec
 
     from .path import Path
-
-    _P = ParamSpec("_P")
-    _R = TypeVar("_R")
 
 
 logger = logging.getLogger(__name__)
@@ -66,16 +63,6 @@ class LinkError(OSError):
             f"{link} is not supported for {fs.protocol} by {type(fs)}",
             path,
         )
-
-
-def with_callback(callback: "Callback", fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
-    @wraps(fn)
-    def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
-        res = fn(*args, **kwargs)
-        callback.relative_update()
-        return res
-
-    return wrapped
 
 
 class FileSystem:
@@ -358,7 +345,7 @@ class FileSystem:
             )
             return fut.result()
 
-        func = with_callback(callback, self.fs.exists)
+        func = wrap_fn(callback, self.fs.exists)
         with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
             return list(executor.map(func, path))
 
@@ -500,7 +487,7 @@ class FileSystem:
             return fut.result()
 
         func = partial(self.fs.info, **kwargs)
-        wrapped = with_callback(callback, func)
+        wrapped = wrap_fn(callback, func)
         with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
             return list(executor.map(wrapped, path))
 

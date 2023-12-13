@@ -7,9 +7,14 @@ import fsspec
 from dvc_objects.utils import cached_property
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Callable, Union
+    from typing import BinaryIO, Callable, TypeVar, Union
+
+    from typing_extensions import ParamSpec
 
     from dvc_objects._tqdm import Tqdm
+
+    _P = ParamSpec("_P")
+    _R = TypeVar("_R")
 
 
 class CallbackStream:
@@ -182,6 +187,16 @@ class FsspecCallbackWrapper(Callback):
             self._callback.branch(path_1, path_2, kwargs)
             child = self.as_callback(kwargs.get("callback"))
         return super().branch(path_1, path_2, kwargs, child=child)
+
+
+def wrap_fn(callback: "Callback", fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
+    @wraps(fn)
+    def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
+        res = fn(*args, **kwargs)
+        callback.relative_update()
+        return res
+
+    return wrapped
 
 
 def wrap_and_branch_callback(callback: "Callback", fn: "Callable") -> "Callable":
