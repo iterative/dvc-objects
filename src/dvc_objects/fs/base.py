@@ -1,7 +1,9 @@
 import asyncio
 import datetime
 import logging
+import ntpath
 import os
+import posixpath
 import shutil
 from functools import partial
 from multiprocessing import cpu_count
@@ -11,15 +13,18 @@ from typing import (
     Any,
     ClassVar,
     Dict,
+    Iterable,
     Iterator,
     List,
     Literal,
     Optional,
+    Sequence,
     Tuple,
     Union,
     cast,
     overload,
 )
+from urllib.parse import urlsplit, urlunsplit
 
 from fsspec.asyn import get_loop
 
@@ -39,8 +44,6 @@ if TYPE_CHECKING:
     from typing import BinaryIO, TextIO
 
     from fsspec.spec import AbstractFileSystem
-
-    from .path import Path
 
 
 logger = logging.getLogger(__name__)
@@ -68,6 +71,7 @@ class LinkError(OSError):
 class FileSystem:
     sep = "/"
 
+    flavour = posixpath
     protocol = "base"
     REQUIRES: ClassVar[Dict[str, str]] = {}
     _JOBS = 4 * cpu_count()
@@ -104,14 +108,138 @@ class FileSystem:
     def root_marker(self) -> str:
         return self.fs.root_marker
 
-    @cached_property
-    def path(self) -> "Path":
-        from .path import Path
+    def getcwd(self) -> str:
+        return ""
 
-        def _getcwd():
-            return self.fs.root_marker
+    def chdir(self, path: str):
+        raise NotImplementedError
 
-        return Path(self.sep, getcwd=_getcwd)
+    @classmethod
+    def join(cls, *parts: str) -> str:
+        return cls.flavour.join(*parts)
+
+    @classmethod
+    def split(cls, path: str) -> Tuple[str, str]:
+        return cls.flavour.split(path)
+
+    @classmethod
+    def splitext(cls, path: str) -> Tuple[str, str]:
+        return cls.flavour.splitext(path)
+
+    def normpath(self, path: str) -> str:
+        if self.flavour == ntpath:
+            return self.flavour.normpath(path)
+
+        parts = list(urlsplit(path))
+        parts[2] = self.flavour.normpath(parts[2])
+        return urlunsplit(parts)
+
+    @classmethod
+    def isabs(cls, path: str) -> bool:
+        return cls.flavour.isabs(path)
+
+    def abspath(self, path: str) -> str:
+        if not self.isabs(path):
+            path = self.join(self.getcwd(), path)
+        return self.normpath(path)
+
+    @classmethod
+    def commonprefix(cls, paths: Sequence[str]) -> str:
+        return cls.flavour.commonprefix(paths)
+
+    @classmethod
+    def commonpath(cls, paths: Iterable[str]) -> str:
+        return cls.flavour.commonpath(list(paths))
+
+    @classmethod
+    def parts(cls, path: str) -> Tuple[str, ...]:
+        drive, path = cls.flavour.splitdrive(path.rstrip(cls.flavour.sep))
+
+        ret = []
+        while True:
+            path, part = cls.flavour.split(path)
+
+            if part:
+                ret.append(part)
+                continue
+
+            if path:
+                ret.append(path)
+
+            break
+
+        ret.reverse()
+
+        if drive:
+            ret = [drive, *ret]
+
+        return tuple(ret)
+
+    @classmethod
+    def parent(cls, path: str) -> str:
+        return cls.flavour.dirname(path)
+
+    @classmethod
+    def dirname(cls, path: str) -> str:
+        return cls.parent(path)
+
+    @classmethod
+    def parents(cls, path: str) -> Iterator[str]:
+        while True:
+            parent = cls.flavour.dirname(path)
+            if parent == path:
+                break
+            yield parent
+            path = parent
+
+    @classmethod
+    def name(cls, path: str) -> str:
+        return cls.flavour.basename(path)
+
+    @classmethod
+    def suffix(cls, path: str) -> str:
+        name = cls.name(path)
+        _, dot, suffix = name.partition(".")
+        return dot + suffix
+
+    @classmethod
+    def with_name(cls, path: str, name: str) -> str:
+        return cls.join(cls.parent(path), name)
+
+    @classmethod
+    def with_suffix(cls, path: str, suffix: str) -> str:
+        return cls.splitext(path)[0] + suffix
+
+    @classmethod
+    def isin(cls, left: str, right: str) -> bool:
+        if left == right:
+            return False
+        try:
+            common = cls.commonpath([left, right])
+        except ValueError:
+            # Paths don't have the same drive
+            return False
+        return common == right
+
+    @classmethod
+    def isin_or_eq(cls, left: str, right: str) -> bool:
+        return left == right or cls.isin(left, right)
+
+    @classmethod
+    def overlaps(cls, left: str, right: str) -> bool:
+        return cls.isin_or_eq(left, right) or cls.isin(right, left)
+
+    def relpath(self, path: str, start: Optional[str] = None) -> str:
+        if start is None:
+            start = "."
+        return self.flavour.relpath(self.abspath(path), start=self.abspath(start))
+
+    def relparts(self, path: str, start: Optional[str] = None) -> Tuple[str, ...]:
+        return self.parts(self.relpath(path, start=start))
+
+    @classmethod
+    def as_posix(cls, path: str) -> str:
+        return path.replace(cls.flavour.sep, posixpath.sep)
 
     @classmethod
     def _strip_protocol(cls, path: str) -> str:
@@ -299,7 +427,7 @@ class FileSystem:
         return self.fs.checksum(path)
 
     def copy(self, from_info: AnyFSPath, to_info: AnyFSPath) -> None:
-        self.makedirs(self.path.parent(to_info))
+        self.makedirs(self.parent(to_info))
         self.fs.copy(from_info, to_info)
 
     def cp_file(self, from_info: AnyFSPath, to_info: AnyFSPath, **kwargs: Any) -> None:
@@ -515,7 +643,7 @@ class FileSystem:
         else:
             assert isinstance(from_file, str)
             self.fs.put_file(os.fspath(from_file), to_info, callback=callback, **kwargs)
-        self.fs.invalidate_cache(self.path.parent(to_info))
+        self.fs.invalidate_cache(self.parent(to_info))
 
     def get_file(
         self,
@@ -527,7 +655,7 @@ class FileSystem:
         self.fs.get_file(from_info, to_info, callback=callback, **kwargs)
 
     def upload_fobj(self, fobj: IO, to_info: AnyFSPath, **kwargs) -> None:
-        self.makedirs(self.path.parent(to_info))
+        self.makedirs(self.parent(to_info))
         with self.open(to_info, "wb") as fdest:
             shutil.copyfileobj(
                 fobj,
@@ -597,7 +725,7 @@ class FileSystem:
         from .local import localfs
 
         def get_file(rpath, lpath, **kwargs):
-            localfs.makedirs(localfs.path.parent(lpath), exist_ok=True)
+            localfs.makedirs(localfs.parent(lpath), exist_ok=True)
             self.fs.get_file(rpath, lpath, **kwargs)
 
         get_file = wrap_and_branch_callback(callback, get_file)
@@ -618,7 +746,7 @@ class FileSystem:
                 return localfs.makedirs(to_info, exist_ok=True)
 
             to_infos = [
-                localfs.path.join(to_info, *self.path.relparts(info, from_info))
+                localfs.join(to_info, *self.relparts(info, from_info))
                 for info in from_infos
             ]
 
@@ -679,9 +807,9 @@ class ObjectFileSystem(FileSystem):
 
         def _make_args(paths: List[AnyFSPath]) -> Iterator[Tuple[str, str]]:
             for path in paths:
-                if prefix and not path.endswith(self.path.flavour.sep):
-                    parent = self.path.parent(path)
-                    yield parent, self.path.parts(path)[-1]
+                if prefix and not path.endswith(self.flavour.sep):
+                    parent = self.parent(path)
+                    yield parent, self.parts(path)[-1]
                 else:
                     yield path, ""
 

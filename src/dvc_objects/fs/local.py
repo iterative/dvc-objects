@@ -179,6 +179,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
 class LocalFileSystem(FileSystem):
     sep = os.sep
 
+    flavour = os.path
     protocol = "local"
     PARAM_CHECKSUM = "md5"
     PARAM_PATH = "path"
@@ -189,17 +190,18 @@ class LocalFileSystem(FileSystem):
     def fs(self):
         return FsspecLocalFileSystem(**self.config)
 
-    @cached_property
-    def path(self):
-        from .path import LocalFileSystemPath
+    def getcwd(self):
+        return os.getcwd()
 
-        return LocalFileSystemPath(
-            self.sep, getcwd=os.getcwd, realpath=os.path.realpath
-        )
+    def normpath(self, path: str) -> str:
+        return self.flavour.normpath(path)
+
+    def realpath(self, path: str) -> str:
+        return self.flavour.realpath(path)
 
     def upload_fobj(self, fobj, to_info, **kwargs):
-        self.makedirs(self.path.parent(to_info))
-        tmp_info = self.path.join(self.path.parent(to_info), tmp_fname(""))
+        self.makedirs(self.parent(to_info))
+        tmp_info = self.join(self.parent(to_info), tmp_fname(""))
         try:
             with open(tmp_info, "wb+") as fdest:
                 shutil.copyfileobj(fobj, fdest)
