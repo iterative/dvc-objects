@@ -116,12 +116,12 @@ def test_walk_detail(dir_path):
         assert len(dirs) == len(exp_dirs)
         assert len(files) == len(exp_files)
         for basename in exp_dirs:
-            assert fs.path.normpath(dirs[basename]["name"]) == os.path.join(
+            assert fs.normpath(dirs[basename]["name"]) == os.path.join(
                 exp_root, basename
             )
             assert dirs[basename]["type"] == "directory"
         for basename in exp_files:
-            assert fs.path.normpath(files[basename]["name"]) == os.path.join(
+            assert fs.normpath(files[basename]["name"]) == os.path.join(
                 exp_root, basename
             )
             assert files[basename]["type"] == "file"
@@ -133,4 +133,4 @@ def test_walk_detail(dir_path):
 def test_normpath_with_newlines():
     fs = LocalFileSystem()
     newline_path = os.path.join("one", "two\nthree")
-    assert fs.path.normpath(newline_path) == newline_path
+    assert fs.normpath(newline_path) == newline_path

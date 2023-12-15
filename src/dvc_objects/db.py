@@ -63,14 +63,13 @@ class ObjectDB:
             self._dirs = set()
             with suppress(FileNotFoundError, NotImplementedError):
                 self._dirs = {
-                    self.fs.path.name(path)
-                    for path in self.fs.ls(self.path, detail=False)
+                    self.fs.name(path) for path in self.fs.ls(self.path, detail=False)
                 }
 
         if dname in self._dirs:
             return
 
-        self.makedirs(self.fs.path.join(self.path, dname))
+        self.makedirs(self.fs.join(self.path, dname))
         self._dirs.add(dname)
 
     def exists(self, oid: str) -> bool:
@@ -198,7 +197,7 @@ class ObjectDB:
         return oid[:2], oid[2:]
 
     def oid_to_path(self, oid) -> str:
-        return self.fs.path.join(self.path, *self._oid_parts(oid))
+        return self.fs.join(self.path, *self._oid_parts(oid))
 
     def _list_prefixes(
         self,
@@ -216,12 +215,12 @@ class ObjectDB:
         yield from self.fs.find(paths, batch_size=jobs, prefix=prefix)
 
     def path_to_oid(self, path) -> str:
-        if self.fs.path.isabs(path):
-            self_path = self.fs.path.abspath(self.path)
+        if self.fs.isabs(path):
+            self_path = self.fs.abspath(self.path)
         else:
             self_path = self.path
-        self_parts = self.fs.path.parts(self_path)
-        parts = self.fs.path.parts(path)[len(self_parts) :]
+        self_parts = self.fs.parts(self_path)
+        parts = self.fs.parts(path)[len(self_parts) :]
 
         if not (len(parts) == 2 and parts[0] and len(parts[0]) == 2):
             raise ValueError(f"Bad cache file path '{path}'")

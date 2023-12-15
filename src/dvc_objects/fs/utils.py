@@ -184,11 +184,11 @@ def tmp_fname(fname: "AnyFSPath" = "") -> "AnyFSPath":
 def as_atomic(
     fs: "FileSystem", to_info: "AnyFSPath", create_parents: bool = False
 ) -> Iterator["AnyFSPath"]:
-    parent = fs.path.parent(to_info)
+    parent = fs.parent(to_info)
     if create_parents:
         fs.makedirs(parent, exist_ok=True)
 
-    tmp_info = fs.path.join(parent, tmp_fname())
+    tmp_info = fs.join(parent, tmp_fname())
     try:
         yield tmp_info
     except BaseException:
@@ -289,7 +289,7 @@ def _list_query(
     callback: "Callback",
 ):
     with paths_lock:
-        parents = {fs.path.parent(path) for path in paths}
+        parents = {fs.parent(path) for path in paths}
     for parent in parents:
         with paths_lock:
             if not paths:

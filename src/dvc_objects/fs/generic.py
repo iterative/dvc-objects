@@ -394,16 +394,16 @@ def test_links(
 ) -> List["AnyFSPath"]:
     from .utils import tmp_fname
 
-    from_file = from_fs.path.join(from_path, tmp_fname())
-    to_file = to_fs.path.join(
-        to_fs.path.parent(to_path),
+    from_file = from_fs.join(from_path, tmp_fname())
+    to_file = to_fs.join(
+        to_fs.parent(to_path),
         tmp_fname(),
     )
 
-    from_fs.makedirs(from_fs.path.parent(from_file))
+    from_fs.makedirs(from_fs.parent(from_file))
     with from_fs.open(from_file, "wb") as fobj:
         fobj.write(b"test")
-    to_fs.makedirs(to_fs.path.parent(to_file))
+    to_fs.makedirs(to_fs.parent(to_file))
 
     ret = []
     try:
