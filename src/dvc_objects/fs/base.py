@@ -26,6 +26,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 
+import fsspec
 from fsspec.asyn import get_loop
 
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
@@ -33,10 +34,8 @@ from dvc_objects.utils import cached_property
 
 from .callbacks import (
     DEFAULT_CALLBACK,
-    Callback,
     CallbackStream,
     wrap_and_branch_callback,
-    wrap_fn,
 )
 from .errors import RemoteMissingDepsError
 
@@ -437,7 +436,7 @@ class FileSystem:
     def exists(
         self,
         path: AnyFSPath,
-        callback: "Callback" = ...,
+        callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
     ) -> bool:
         ...
@@ -446,7 +445,7 @@ class FileSystem:
     def exists(
         self,
         path: List[AnyFSPath],
-        callback: "Callback" = ...,
+        callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
     ) -> List[bool]:
         ...
@@ -454,7 +453,7 @@ class FileSystem:
     def exists(
         self,
         path: Union[AnyFSPath, List[AnyFSPath]],
-        callback: "Callback" = DEFAULT_CALLBACK,
+        callback: fsspec.Callback = DEFAULT_CALLBACK,
         batch_size: Optional[int] = None,
     ) -> Union[bool, List[bool]]:
         if isinstance(path, str):
@@ -473,9 +472,9 @@ class FileSystem:
             )
             return fut.result()
 
-        func = wrap_fn(callback, self.fs.exists)
         with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
-            return list(executor.map(func, path))
+            it = executor.map(self.fs.exists, path)
+            return list(callback.wrap(it))
 
     def lexists(self, path: AnyFSPath) -> bool:
         return self.fs.lexists(path)
@@ -582,7 +581,7 @@ class FileSystem:
     def info(
         self,
         path: AnyFSPath,
-        callback: "Callback" = ...,
+        callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
         **kwargs,
     ) -> "Entry":
@@ -592,7 +591,7 @@ class FileSystem:
     def info(
         self,
         path: List[AnyFSPath],
-        callback: "Callback" = ...,
+        callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
     ) -> List["Entry"]:
         ...
@@ -615,9 +614,9 @@ class FileSystem:
             return fut.result()
 
         func = partial(self.fs.info, **kwargs)
-        wrapped = wrap_fn(callback, func)
         with ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True) as executor:
-            return list(executor.map(wrapped, path))
+            it = executor.map(func, path)
+            return list(callback.wrap(it))
 
     def mkdir(
         self, path: AnyFSPath, create_parents: bool = True, **kwargs: Any
@@ -631,7 +630,7 @@ class FileSystem:
         self,
         from_file: Union[AnyFSPath, "BinaryIO"],
         to_info: AnyFSPath,
-        callback: Callback = DEFAULT_CALLBACK,
+        callback: fsspec.Callback = DEFAULT_CALLBACK,
         size: Optional[int] = None,
         **kwargs,
     ) -> None:
@@ -649,7 +648,7 @@ class FileSystem:
         self,
         from_info: AnyFSPath,
         to_info: AnyFSPath,
-        callback: Callback = DEFAULT_CALLBACK,
+        callback: fsspec.Callback = DEFAULT_CALLBACK,
         **kwargs,
     ) -> None:
         self.fs.get_file(from_info, to_info, callback=callback, **kwargs)
@@ -688,7 +687,7 @@ class FileSystem:
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
-        callback: "Callback" = DEFAULT_CALLBACK,
+        callback: fsspec.Callback = DEFAULT_CALLBACK,
         recursive: bool = False,
         batch_size: Optional[int] = None,
     ):
@@ -716,7 +715,7 @@ class FileSystem:
         self,
         from_info: Union[AnyFSPath, List[AnyFSPath]],
         to_info: Union[AnyFSPath, List[AnyFSPath]],
-        callback: "Callback" = DEFAULT_CALLBACK,
+        callback: fsspec.Callback = DEFAULT_CALLBACK,
         recursive: bool = False,
         batch_size: Optional[int] = None,
     ) -> None:

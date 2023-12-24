@@ -1,20 +1,18 @@
+import asyncio
 from contextlib import ExitStack
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
 
 import fsspec
 
 from dvc_objects.utils import cached_property
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Callable, TypeVar, Union
-
-    from typing_extensions import ParamSpec
+    from typing import BinaryIO, Union
 
     from dvc_objects._tqdm import Tqdm
 
-    _P = ParamSpec("_P")
-    _R = TypeVar("_R")
+F = TypeVar("F", bound=Callable)
 
 
 class CallbackStream:
@@ -75,23 +73,13 @@ class Callback(ScopedCallback):
 
     @classmethod
     def as_callback(
-        cls, maybe_callback: Optional[fsspec.callbacks.Callback] = None
+        cls, maybe_callback: Optional[fsspec.Callback] = None
     ) -> "Callback":
         if maybe_callback is None:
             return DEFAULT_CALLBACK
         if isinstance(maybe_callback, Callback):
             return maybe_callback
         return FsspecCallbackWrapper(maybe_callback)
-
-    @classmethod
-    def as_tqdm_callback(
-        cls,
-        callback: Optional[fsspec.callbacks.Callback] = None,
-        **tqdm_kwargs: Any,
-    ) -> "Callback":
-        if callback is None:
-            return TqdmCallback(**tqdm_kwargs)
-        return cls.as_callback(callback)
 
 
 class NoOpCallback(Callback, fsspec.callbacks.NoOpCallback):
@@ -152,7 +140,7 @@ class TqdmCallback(Callback):
 
 
 class FsspecCallbackWrapper(Callback):
-    def __init__(self, callback: fsspec.callbacks.Callback):
+    def __init__(self, callback: fsspec.Callback):
         object.__setattr__(self, "_callback", callback)
 
     def __getattr__(self, name: str):
@@ -182,46 +170,41 @@ class FsspecCallbackWrapper(Callback):
         return super().branch(path_1, path_2, kwargs, child=child)
 
 
-def wrap_fn(callback: "Callback", fn: "Callable[_P, _R]") -> "Callable[_P, _R]":
+def wrap_fn(callback: fsspec.Callback, fn: F) -> F:
     @wraps(fn)
-    def wrapped(*args: "_P.args", **kwargs: "_P.kwargs") -> "_R":
+    async def async_wrapper(*args, **kwargs):
+        res = await fn(*args, **kwargs)
+        callback.relative_update()
+        return res
+
+    @wraps(fn)
+    def sync_wrapper(*args, **kwargs):
         res = fn(*args, **kwargs)
         callback.relative_update()
         return res
 
-    return wrapped
+    return async_wrapper if asyncio.iscoroutinefunction(fn) else sync_wrapper  # type: ignore[return-value]
 
 
-def wrap_and_branch_callback(callback: "Callback", fn: "Callable") -> "Callable":
-    """
-    Wraps a function, and pass a new child callback to it.
-    When the function completes, we increment the parent callback by 1.
-    """
+def branch_callback(callback: fsspec.Callback, fn: F) -> F:
+    callback = Callback.as_callback(callback)
 
     @wraps(fn)
-    def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+    async def async_wrapper(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
         with callback.branch(path1, path2, kwargs):
-            res = fn(path1, path2, **kwargs)
-            callback.relative_update()
-            return res
-
-    return func
-
-
-def wrap_and_branch_coro(callback: "Callback", fn: "Callable") -> "Callable":
-    """
-    Wraps a coroutine, and pass a new child callback to it.
-    When the coroutine completes, we increment the parent callback by 1.
-    """
+            return await fn(path1, path2, **kwargs)
 
     @wraps(fn)
-    async def func(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
+    def sync_wrapper(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
         with callback.branch(path1, path2, kwargs):
-            res = await fn(path1, path2, **kwargs)
-            callback.relative_update()
-            return res
+            return fn(path1, path2, **kwargs)
 
-    return func
+    return async_wrapper if asyncio.iscoroutinefunction(fn) else sync_wrapper  # type: ignore[return-value]
+
+
+def wrap_and_branch_callback(callback: fsspec.Callback, fn: F) -> F:
+    branch_wrapper = branch_callback(callback, fn)
+    return wrap_fn(callback, branch_wrapper)
 
 
 DEFAULT_CALLBACK = NoOpCallback()

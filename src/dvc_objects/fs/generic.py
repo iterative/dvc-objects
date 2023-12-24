@@ -10,7 +10,7 @@ from fsspec.asyn import get_loop
 
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 
-from .callbacks import DEFAULT_CALLBACK, wrap_and_branch_callback, wrap_and_branch_coro
+from .callbacks import DEFAULT_CALLBACK, wrap_and_branch_callback
 from .local import LocalFileSystem, localfs
 from .utils import as_atomic, umask
 
@@ -156,7 +156,7 @@ def _put(
         return _put_one(from_paths[0], to_paths[0])
 
     if to_fs.fs.async_impl:
-        put_coro = wrap_and_branch_coro(callback, to_fs.fs._put_file)
+        put_coro = wrap_and_branch_callback(callback, to_fs.fs._put_file)
         loop = get_loop()
         fut = asyncio.run_coroutine_threadsafe(
             batch_coros(
@@ -214,7 +214,7 @@ def _get(  # noqa: C901
     if from_fs.fs.async_impl:
 
         async def _get_one_coro(from_path: "AnyFSPath", to_path: "AnyFSPath"):
-            get_coro = wrap_and_branch_coro(callback, from_fs.fs._get_file)
+            get_coro = wrap_and_branch_callback(callback, from_fs.fs._get_file)
             with as_atomic(localfs, to_path, create_parents=True) as tmp_file:
                 return await get_coro(
                     from_path, tmp_file, callback=callback, **get_file_kwargs
