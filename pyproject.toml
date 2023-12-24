@@ -38,12 +38,13 @@ tests = [
     "pytest-cov>=4.1.0",
     "pytest-mock",
     "pytest-benchmark",
+    "pytest-asyncio>=0.23.2,<1",
     "reflink",
-    "tqdm>=4.63.1,<5",
 ]
 dev = [
     "dvc-objects[tests]",
     "mypy==1.7.1",
+    "tqdm>=4.63.1,<5",
     "types-tqdm",
     "typing-extensions>=3.7.4",
 ]
