@@ -251,7 +251,7 @@ class FileSystem:
     def fs(self) -> "AbstractFileSystem":
         raise NotImplementedError
 
-    @cached_property
+    @property
     def version_aware(self) -> bool:
         return self._config.get("version_aware", False)
 
