@@ -1,11 +1,8 @@
 import asyncio
-from contextlib import ExitStack
 from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
 
 import fsspec
-
-from dvc_objects.utils import cached_property
 
 if TYPE_CHECKING:
     from typing import BinaryIO, Union
@@ -63,10 +60,6 @@ class ScopedCallback(fsspec.Callback):
 
 
 class Callback(ScopedCallback):
-    def relative_update(self, inc: int = 1) -> None:
-        inc = inc if inc is not None else 0
-        return super().relative_update(inc)
-
     def absolute_update(self, value: int) -> None:
         value = value if value is not None else self.value
         return super().absolute_update(value)
@@ -94,37 +87,23 @@ class TqdmCallback(Callback):
         progress_bar: Optional["Tqdm"] = None,
         **tqdm_kwargs,
     ):
-        tqdm_kwargs["total"] = size or -1
-        self._tqdm_kwargs = tqdm_kwargs
-        self._progress_bar = progress_bar
-        self._stack = ExitStack()
-        super().__init__(size=size, value=value)
-
-    @cached_property
-    def progress_bar(self):
         from dvc_objects._tqdm import Tqdm
 
-        progress_bar = (
-            self._progress_bar
-            if self._progress_bar is not None
-            else Tqdm(**self._tqdm_kwargs)
-        )
-        return self._stack.enter_context(progress_bar)
-
-    def __enter__(self):
-        return self
+        tqdm_kwargs.pop("total", None)
+        self._tqdm_kwargs = tqdm_kwargs
+        self._tqdm_cls = Tqdm
+        self.tqdm = progress_bar
+        super().__init__(size=size, value=value)
 
     def close(self):
-        self._stack.close()
-
-    def set_size(self, size):
-        # Tqdm tries to be smart when to refresh,
-        # so we try to force it to re-render.
-        super().set_size(size)
-        self.progress_bar.refresh()
+        if self.tqdm is not None:
+            self.tqdm.close()
+        self.tqdm = None
 
     def call(self, hook_name=None, **kwargs):
-        self.progress_bar.update_to(self.value, total=self.size)
+        if self.tqdm is None:
+            self.tqdm = self._tqdm_cls(**self._tqdm_kwargs, total=self.size or -1)
+        self.tqdm.update_to(self.value, total=self.size)
 
     def branch(
         self,
@@ -133,9 +112,8 @@ class TqdmCallback(Callback):
         kwargs: Dict[str, Any],
         child: Optional[Callback] = None,
     ):
-        child = child or TqdmCallback(
-            bytes=True, desc=path_1 if isinstance(path_1, str) else path_2
-        )
+        desc = path_1 if isinstance(path_1, str) else path_2
+        child = child or TqdmCallback(bytes=True, desc=desc)
         return super().branch(path_1, path_2, kwargs, child=child)
 
 
@@ -148,10 +126,6 @@ class FsspecCallbackWrapper(Callback):
 
     def __setattr__(self, name: str, value: Any):
         setattr(self._callback, name, value)
-
-    def relative_update(self, inc: int = 1) -> None:
-        inc = inc if inc is not None else 0
-        return self._callback.relative_update(inc)
 
     def absolute_update(self, value: int) -> None:
         value = value if value is not None else self.value

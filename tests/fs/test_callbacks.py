@@ -13,7 +13,7 @@ from dvc_objects.fs.callbacks import (
 )
 
 
-@pytest.mark.parametrize("api", ["set_size", "relative_update", "absolute_update"])
+@pytest.mark.parametrize("api", ["set_size", "absolute_update"])
 def test_callback_with_none(request, api, mocker):
     """
     Test that callback don't fail if they receive None.
