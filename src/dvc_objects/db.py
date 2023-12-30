@@ -64,7 +64,7 @@ class ObjectDB:
     def __rich_repr__(self):
         yield "fs", self.fs
         yield "path", self.path
-        yield "read_only", self.read_only
+        yield "read_only", self.read_only, False
 
     def _init(self, dname: str) -> None:
         if self.read_only:
