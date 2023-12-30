@@ -39,10 +39,10 @@ def wrap_iter(iterable, callback):
 
 
 class ObjectDB:
-    def __init__(self, fs: "FileSystem", path: str, **config):
+    def __init__(self, fs: "FileSystem", path: str, read_only: bool = False, **config):
         self.fs = fs
         self.path = path
-        self.read_only = config.get("read_only", False)
+        self.read_only = read_only
         self._dirs: Optional[set] = None
 
     def __eq__(self, other: object):
@@ -54,6 +54,12 @@ class ObjectDB:
 
     def __hash__(self):
         return hash((self.fs.protocol, self.path, self.read_only))
+
+    def __repr__(self):
+        fs = self.fs
+        path = self.path
+        read_only = self.read_only
+        return f"{self.__class__.__name__}({fs=!r}, {path=!r}, {read_only=!r})"
 
     def _init(self, dname: str) -> None:
         if self.read_only:
