@@ -61,6 +61,11 @@ class ObjectDB:
         read_only = self.read_only
         return f"{self.__class__.__name__}({fs=!r}, {path=!r}, {read_only=!r})"
 
+    def __rich_repr__(self):
+        yield "fs", self.fs
+        yield "path", self.path
+        yield "read_only", self.read_only
+
     def _init(self, dname: str) -> None:
         if self.read_only:
             return
