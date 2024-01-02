@@ -124,21 +124,6 @@ class Tqdm(tqdm):
         )
         super().close()
 
-    def wrap_fn(self, fn, callback=None):
-        """
-        Returns a wrapped `fn` which calls `callback()` on each call.
-        `callback` is `self.update` by default.
-        """
-        if callback is None:
-            callback = self.update
-
-        def wrapped(*args, **kwargs):
-            res = fn(*args, **kwargs)
-            callback()
-            return res
-
-        return wrapped
-
     @property
     def format_dict(self):
         """inject `ncols_desc` to fill the display width (`ncols`)"""
