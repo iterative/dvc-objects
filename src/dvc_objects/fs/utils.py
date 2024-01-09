@@ -7,6 +7,7 @@ import sys
 import threading
 from concurrent import futures
 from contextlib import contextmanager, suppress
+from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set, Union
 
 from dvc_objects.executors import ThreadPoolExecutor
@@ -60,10 +61,8 @@ def move(src: "AnyFSPath", dst: "AnyFSPath") -> None:
     case src and dst are on different filesystems and actual physical copying
     of data is happening.
     """
-    from shortuuid import uuid
-
     dst = os.path.abspath(dst)
-    tmp = f"{dst}.{uuid()}"
+    tmp = tmp_fname(dst)
 
     if os.path.islink(src):
         shutil.copy(src, tmp)
@@ -173,11 +172,9 @@ def copyfile(
         shutil.copyfileobj(fsrc, wrapped, length=LOCAL_CHUNK_SIZE)
 
 
-def tmp_fname(fname: "AnyFSPath" = "") -> "AnyFSPath":
+def tmp_fname(prefix: str = "") -> str:
     """Temporary name for a partial download"""
-    from shortuuid import uuid
-
-    return os.fspath(fname) + "." + uuid() + ".tmp"
+    return f"{prefix}.{token_urlsafe(16)}.tmp"
 
 
 @contextmanager
