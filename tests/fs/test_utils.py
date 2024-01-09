@@ -10,7 +10,7 @@ def test_tmp_fname():
     file = os.path.join("path", "to", "file")
 
     def pattern(path):
-        return r"^" + re.escape(path) + r"\.[a-z0-9]{22}\.tmp$"
+        return r"^" + re.escape(path) + r"\.[a-z0-9_-]{22}\.tmp$"
 
     assert re.search(pattern(file), utils.tmp_fname(file), re.IGNORECASE)
     assert re.search(
