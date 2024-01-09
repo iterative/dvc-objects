@@ -22,7 +22,7 @@ classifiers = [
 requires-python = ">=3.8"
 dynamic = ["version"]
 dependencies = [
-    "funcy>=1.14",
+    "funcy>=1.14; python_version < '3.12'",
     "fsspec>=2022.10.0",
 ]
 
@@ -169,8 +169,8 @@ parametrize-names-type = "csv"
 
 [tool.ruff.lint.flake8-tidy-imports]
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"funcy.cached_property" = {msg = "use `from dvc_objects.utils import cached_property` instead."}
-"functools.cached_property" = {msg = "use `from dvc_objects.utils import cached_property` instead."}
+"funcy.cached_property" = {msg = "use `from dvc_objects.compat import cached_property` instead."}
+"functools.cached_property" = {msg = "use `from dvc_objects.compat import cached_property` instead."}
 
 [tool.ruff.lint.flake8-type-checking]
 strict = true

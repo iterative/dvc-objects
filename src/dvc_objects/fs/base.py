@@ -29,8 +29,8 @@ from urllib.parse import urlsplit, urlunsplit
 import fsspec
 from fsspec.asyn import get_loop
 
+from dvc_objects.compat import cached_property
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
-from dvc_objects.utils import cached_property
 
 from .callbacks import (
     DEFAULT_CALLBACK,

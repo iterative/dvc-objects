@@ -1,12 +1,8 @@
 import logging
 import os
 import shutil
-import threading
 
 import fsspec
-from funcy import wrap_prop
-
-from dvc_objects.utils import cached_property
 
 from . import system
 from .base import FileSystem
@@ -185,10 +181,9 @@ class LocalFileSystem(FileSystem):
     PARAM_PATH = "path"
     TRAVERSE_PREFIX_LEN = 2
 
-    @wrap_prop(threading.Lock())  # type: ignore[misc]
-    @cached_property
-    def fs(self):
-        return FsspecLocalFileSystem(**self.config)
+    def __init__(self, fs=None, **kwargs):
+        fs = fs or FsspecLocalFileSystem(**kwargs)
+        super().__init__(fs, **kwargs)
 
     def getcwd(self):
         return os.getcwd()
