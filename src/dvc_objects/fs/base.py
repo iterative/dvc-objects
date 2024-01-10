@@ -21,7 +21,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
     overload,
 )
 from urllib.parse import urlsplit, urlunsplit
@@ -34,8 +33,8 @@ from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 
 from .callbacks import (
     DEFAULT_CALLBACK,
-    CallbackStream,
     wrap_and_branch_callback,
+    wrap_file,
 )
 from .errors import RemoteMissingDepsError
 
@@ -637,7 +636,7 @@ class FileSystem:
         if size:
             callback.set_size(size)
         if hasattr(from_file, "read"):
-            stream = cast("BinaryIO", CallbackStream(from_file, callback))
+            stream = wrap_file(from_file, callback)
             self.upload_fobj(stream, to_info, size=size)
         else:
             assert isinstance(from_file, str)

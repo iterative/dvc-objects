@@ -1,11 +1,11 @@
 import asyncio
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Optional, TypeVar, cast
 
 import fsspec
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Union
+    from typing import Union
 
     from dvc_objects._tqdm import Tqdm
 
@@ -13,26 +13,16 @@ F = TypeVar("F", bound=Callable)
 
 
 class CallbackStream:
-    def __init__(self, stream, callback, method="read"):
+    def __init__(self, stream, callback: fsspec.Callback):
         self.stream = stream
-        if method == "write":
 
-            @wraps(stream.write)
-            def write(data, *args, **kwargs):
-                res = stream.write(data, *args, **kwargs)
-                callback.relative_update(len(data))
-                return res
+        @wraps(stream.read)
+        def read(*args, **kwargs):
+            data = stream.read(*args, **kwargs)
+            callback.relative_update(len(data))
+            return data
 
-            self.write = write
-        else:
-
-            @wraps(stream.read)
-            def read(*args, **kwargs):
-                data = stream.read(*args, **kwargs)
-                callback.relative_update(len(data))
-                return data
-
-            self.read = read
+        self.read = read
 
     def __getattr__(self, attr):
         return getattr(self.stream, attr)
@@ -179,6 +169,10 @@ def branch_callback(callback: fsspec.Callback, fn: F) -> F:
 def wrap_and_branch_callback(callback: fsspec.Callback, fn: F) -> F:
     branch_wrapper = branch_callback(callback, fn)
     return wrap_fn(callback, branch_wrapper)
+
+
+def wrap_file(file, callback: fsspec.Callback) -> BinaryIO:
+    return cast(BinaryIO, CallbackStream(file, callback))
 
 
 DEFAULT_CALLBACK = NoOpCallback()

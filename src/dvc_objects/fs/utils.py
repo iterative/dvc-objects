@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set
 from dvc_objects.executors import ThreadPoolExecutor
 
 from . import system
-from .callbacks import DEFAULT_CALLBACK, CallbackStream
+from .callbacks import DEFAULT_CALLBACK, wrap_file
 
 if TYPE_CHECKING:
     from .base import AnyFSPath, FileSystem
@@ -168,8 +168,8 @@ def copyfile(
 
     callback.set_size(total)
     with open(src, "rb") as fsrc, open(dest, "wb+") as fdest:
-        wrapped = CallbackStream(fdest, callback, "write")
-        shutil.copyfileobj(fsrc, wrapped, length=LOCAL_CHUNK_SIZE)
+        wrapped = wrap_file(fsrc, callback)
+        shutil.copyfileobj(wrapped, fdest, length=LOCAL_CHUNK_SIZE)
 
 
 def tmp_fname(prefix: str = "") -> str:

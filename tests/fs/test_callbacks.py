@@ -9,6 +9,7 @@ from dvc_objects.fs.callbacks import (
     TqdmCallback,
     branch_callback,
     wrap_and_branch_callback,
+    wrap_file,
     wrap_fn,
 )
 
@@ -146,3 +147,17 @@ async def test_wrap_and_branch_callback_async(mocker, cb_class):
     m.assert_any_call("argA", "argB", arg3="argC", callback=IsDVCCallback())
     assert callback.value == 2
     assert spy.call_count == 2
+
+
+def test_wrap_file(memfs):
+    memfs.pipe_file("/file", b"foo\n")
+
+    callback = Callback()
+
+    callback.set_size(4)
+    with memfs.open("/file", mode="rb") as f:
+        wrapped = wrap_file(f, callback)
+        assert wrapped.read() == b"foo\n"
+
+    assert callback.value == 4
+    assert callback.size == 4
