@@ -51,7 +51,7 @@ jobs:
       run: nox -s tests-${{ matrix.nox_pyv || matrix.pyv }} -- --cov-report=xml
 
     - name: Upload coverage report
-      uses: codecov/codecov-action@v3.1.4
+      uses: codecov/codecov-action@v3.1.5
 
     - name: Run benchmarks
       run: nox -s bench
