@@ -27,15 +27,12 @@ from urllib.parse import urlsplit, urlunsplit
 
 import fsspec
 from fsspec.asyn import get_loop
+from fsspec.callbacks import DEFAULT_CALLBACK
 
 from dvc_objects.compat import cached_property
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 
-from .callbacks import (
-    DEFAULT_CALLBACK,
-    wrap_and_branch_callback,
-    wrap_file,
-)
+from .callbacks import wrap_and_branch_callback, wrap_file
 from .errors import RemoteMissingDepsError
 
 if TYPE_CHECKING:

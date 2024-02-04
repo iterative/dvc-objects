@@ -10,14 +10,17 @@ from contextlib import contextmanager, suppress
 from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set, Union
 
+from fsspec.callbacks import DEFAULT_CALLBACK
+
 from dvc_objects.executors import ThreadPoolExecutor
 
 from . import system
-from .callbacks import DEFAULT_CALLBACK, wrap_file
+from .callbacks import wrap_file
 
 if TYPE_CHECKING:
+    from fsspec import Callback
+
     from .base import AnyFSPath, FileSystem
-    from .callbacks import Callback
 
 
 logger = logging.getLogger(__name__)

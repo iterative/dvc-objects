@@ -18,7 +18,7 @@ from typing import (
     TypeVar,
 )
 
-from .fs.callbacks import Callback
+from fsspec import Callback
 
 _T = TypeVar("_T")
 

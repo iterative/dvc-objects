@@ -3,6 +3,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, BinaryIO, Callable, Dict, Optional, TypeVar, cast
 
 import fsspec
+from fsspec.callbacks import DEFAULT_CALLBACK, Callback, NoOpCallback
 
 if TYPE_CHECKING:
     from typing import Union
@@ -11,9 +12,11 @@ if TYPE_CHECKING:
 
 F = TypeVar("F", bound=Callable)
 
+__all__ = ["Callback", "NoOpCallback", "TqdmCallback", "DEFAULT_CALLBACK"]
+
 
 class CallbackStream:
-    def __init__(self, stream, callback: fsspec.Callback):
+    def __init__(self, stream, callback: Callback):
         self.stream = stream
 
         @wraps(stream.read)
@@ -28,48 +31,7 @@ class CallbackStream:
         return getattr(self.stream, attr)
 
 
-class ScopedCallback(fsspec.Callback):
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc_args):
-        self.close()
-
-    def close(self):
-        """Handle here on exit."""
-
-    def branch(
-        self,
-        path_1: "Union[str, BinaryIO]",
-        path_2: str,
-        kwargs: Dict[str, Any],
-        child: Optional["Callback"] = None,
-    ) -> "Callback":
-        child = kwargs["callback"] = child or DEFAULT_CALLBACK
-        return child
-
-
-class Callback(ScopedCallback):
-    def absolute_update(self, value: int) -> None:
-        value = value if value is not None else self.value
-        return super().absolute_update(value)
-
-    @classmethod
-    def as_callback(
-        cls, maybe_callback: Optional[fsspec.Callback] = None
-    ) -> "Callback":
-        if maybe_callback is None:
-            return DEFAULT_CALLBACK
-        if isinstance(maybe_callback, Callback):
-            return maybe_callback
-        return FsspecCallbackWrapper(maybe_callback)
-
-
-class NoOpCallback(Callback, fsspec.callbacks.NoOpCallback):
-    pass
-
-
-class TqdmCallback(Callback):
+class TqdmCallback(fsspec.callbacks.TqdmCallback):
     def __init__(
         self,
         size: Optional[int] = None,
@@ -80,58 +42,18 @@ class TqdmCallback(Callback):
         from dvc_objects._tqdm import Tqdm
 
         tqdm_kwargs.pop("total", None)
-        self._tqdm_kwargs = tqdm_kwargs
-        self._tqdm_cls = Tqdm
-        self.tqdm = progress_bar
-        super().__init__(size=size, value=value)
+        super().__init__(tqdm_kwargs=tqdm_kwargs, tqdm_cls=Tqdm, size=size, value=value)
+        if progress_bar:
+            self.tqdm = progress_bar
 
-    def close(self):
-        if self.tqdm is not None:
-            self.tqdm.close()
-        self.tqdm = None
-
-    def call(self, hook_name=None, **kwargs):
-        if self.tqdm is None:
-            self.tqdm = self._tqdm_cls(**self._tqdm_kwargs, total=self.size or -1)
-        self.tqdm.update_to(self.value, total=self.size)
-
-    def branch(
+    def branched(
         self,
         path_1: "Union[str, BinaryIO]",
         path_2: str,
         kwargs: Dict[str, Any],
-        child: Optional[Callback] = None,
     ):
         desc = path_1 if isinstance(path_1, str) else path_2
-        child = child or TqdmCallback(bytes=True, desc=desc)
-        return super().branch(path_1, path_2, kwargs, child=child)
-
-
-class FsspecCallbackWrapper(Callback):
-    def __init__(self, callback: fsspec.Callback):
-        object.__setattr__(self, "_callback", callback)
-
-    def __getattr__(self, name: str):
-        return getattr(self._callback, name)
-
-    def __setattr__(self, name: str, value: Any):
-        setattr(self._callback, name, value)
-
-    def absolute_update(self, value: int) -> None:
-        value = value if value is not None else self.value
-        return self._callback.absolute_update(value)
-
-    def branch(
-        self,
-        path_1: "Union[str, BinaryIO]",
-        path_2: str,
-        kwargs: Dict[str, Any],
-        child: Optional["Callback"] = None,
-    ) -> "Callback":
-        if not child:
-            self._callback.branch(path_1, path_2, kwargs)
-            child = self.as_callback(kwargs.get("callback"))
-        return super().branch(path_1, path_2, kwargs, child=child)
+        return TqdmCallback(bytes=True, desc=desc)
 
 
 def wrap_fn(callback: fsspec.Callback, fn: F) -> F:
@@ -151,19 +73,12 @@ def wrap_fn(callback: fsspec.Callback, fn: F) -> F:
 
 
 def branch_callback(callback: fsspec.Callback, fn: F) -> F:
-    callback = Callback.as_callback(callback)
-
-    @wraps(fn)
-    async def async_wrapper(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
-        with callback.branch(path1, path2, kwargs):
-            return await fn(path1, path2, **kwargs)
-
     @wraps(fn)
     def sync_wrapper(path1: "Union[str, BinaryIO]", path2: str, **kwargs):
-        with callback.branch(path1, path2, kwargs):
+        with callback.branched(path1, path2):
             return fn(path1, path2, **kwargs)
 
-    return async_wrapper if asyncio.iscoroutinefunction(fn) else sync_wrapper  # type: ignore[return-value]
+    return callback.branch_coro(fn) if asyncio.iscoroutinefunction(fn) else sync_wrapper  # type: ignore[return-value]
 
 
 def wrap_and_branch_callback(callback: fsspec.Callback, fn: F) -> F:
@@ -173,6 +88,3 @@ def wrap_and_branch_callback(callback: fsspec.Callback, fn: F) -> F:
 
 def wrap_file(file, callback: fsspec.Callback) -> BinaryIO:
     return cast(BinaryIO, CallbackStream(file, callback))
-
-
-DEFAULT_CALLBACK = NoOpCallback()

@@ -7,16 +7,18 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 from fsspec.asyn import get_loop
+from fsspec.callbacks import DEFAULT_CALLBACK
 
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 
-from .callbacks import DEFAULT_CALLBACK, wrap_and_branch_callback
+from .callbacks import wrap_and_branch_callback
 from .local import LocalFileSystem, localfs
 from .utils import as_atomic, umask
 
 if TYPE_CHECKING:
+    from fsspec import Callback
+
     from .base import AnyFSPath, FileSystem
-    from .callbacks import Callback
 
 logger = logging.getLogger(__name__)
 
