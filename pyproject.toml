@@ -104,7 +104,7 @@ module = [
 ]
 
 [tool.codespell]
-ignore-words-list = " "
+ignore-words-list = "cachable,"
 
 [tool.ruff]
 ignore = [

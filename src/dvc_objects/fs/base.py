@@ -32,7 +32,7 @@ from fsspec.callbacks import DEFAULT_CALLBACK
 from dvc_objects.compat import cached_property
 from dvc_objects.executors import ThreadPoolExecutor, batch_coros
 
-from .callbacks import wrap_and_branch_callback, wrap_file
+from .callbacks import wrap_file
 from .errors import RemoteMissingDepsError
 
 if TYPE_CHECKING:
@@ -703,9 +703,14 @@ class FileSystem:
 
         callback.set_size(len(from_infos))
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
+
+        def put_file(from_path, to_path):
+            with callback.branched(from_path, to_path) as child:
+                return self.put_file(from_path, to_path, callback=child)
+
         with executor:
-            put_file = wrap_and_branch_callback(callback, self.put_file)
-            list(executor.imap_unordered(put_file, from_infos, to_infos))
+            it = executor.imap_unordered(put_file, from_infos, to_infos)
+            list(callback.wrap(it))
 
     def get(
         self,
@@ -721,9 +726,8 @@ class FileSystem:
 
         def get_file(rpath, lpath, **kwargs):
             localfs.makedirs(localfs.parent(lpath), exist_ok=True)
-            self.fs.get_file(rpath, lpath, **kwargs)
-
-        get_file = wrap_and_branch_callback(callback, get_file)
+            with callback.branched(rpath, lpath) as child:
+                self.fs.get_file(rpath, lpath, callback=child, **kwargs)
 
         if isinstance(from_info, list) and isinstance(to_info, list):
             from_infos: List[AnyFSPath] = from_info
@@ -734,7 +738,9 @@ class FileSystem:
 
             if not self.isdir(from_info):
                 callback.set_size(1)
-                return get_file(from_info, to_info)
+                get_file(from_info, to_info)
+                callback.relative_update()
+                return
 
             from_infos = list(self.find(from_info))
             if not from_infos:
@@ -757,7 +763,8 @@ class FileSystem:
         callback.set_size(len(from_infos))
         executor = ThreadPoolExecutor(max_workers=jobs, cancel_on_error=True)
         with executor:
-            list(executor.imap_unordered(get_file, from_infos, to_infos))
+            it = executor.imap_unordered(get_file, from_infos, to_infos)
+            list(callback.wrap(it))
 
     def ukey(self, path: AnyFSPath) -> str:
         return self.fs.ukey(path)
