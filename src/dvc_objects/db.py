@@ -16,13 +16,15 @@ from typing import (
     cast,
 )
 
+from fsspec.callbacks import DEFAULT_CALLBACK
+
 from .errors import ObjectDBPermissionError
-from .fs.callbacks import DEFAULT_CALLBACK
 from .obj import Object
 
 if TYPE_CHECKING:
+    from fsspec import Callback
+
     from .fs.base import AnyFSPath, FileSystem
-    from .fs.callbacks import Callback
 
 
 logger = logging.getLogger(__name__)

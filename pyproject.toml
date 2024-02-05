@@ -23,7 +23,7 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 dependencies = [
     "funcy>=1.14; python_version < '3.12'",
-    "fsspec>=2022.10.0",
+    "fsspec>=2024.2.0",
 ]
 
 [project.urls]
@@ -104,7 +104,7 @@ module = [
 ]
 
 [tool.codespell]
-ignore-words-list = " "
+ignore-words-list = "cachable,"
 
 [tool.ruff]
 ignore = [
