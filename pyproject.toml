@@ -43,9 +43,6 @@ tests = [
 dev = [
     "dvc-objects[tests]",
     "mypy==1.8.0",
-    "tqdm>=4.63.1,<5",
-    "types-tqdm",
-    "typing-extensions>=3.7.4",
 ]
 
 [tool.setuptools.packages.find]
