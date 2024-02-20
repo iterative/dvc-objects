@@ -1,20 +1,13 @@
 import asyncio
 import queue
 import sys
+from collections.abc import Coroutine, Iterable, Iterator, Sequence
 from concurrent import futures
 from itertools import islice
 from typing import (
     Any,
     Callable,
-    Coroutine,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Sequence,
-    Set,
-    Tuple,
     TypeVar,
 )
 
@@ -50,7 +43,7 @@ class ThreadPoolExecutor(futures.ThreadPoolExecutor):
                 yield fn(*args)
             return
 
-        def create_taskset(n: int) -> Set[futures.Future]:
+        def create_taskset(n: int) -> set[futures.Future]:
             return {self.submit(fn, *args) for args in islice(it, n)}
 
         tasks = create_taskset(self.max_workers * 5)
@@ -99,7 +92,7 @@ async def batch_coros(  # noqa: C901
     timeout: Optional[int] = None,
     return_exceptions: bool = False,
     nofiles: bool = False,
-) -> List[Any]:
+) -> list[Any]:
     """Run the given in coroutines in parallel.
 
     The asyncio loop will be kept saturated with up to `batch_size` tasks in
@@ -116,12 +109,12 @@ async def batch_coros(  # noqa: C901
         batch_size = len(coros)
     assert batch_size > 0
 
-    def create_taskset(n: int) -> Dict[asyncio.Task, int]:
+    def create_taskset(n: int) -> dict[asyncio.Task, int]:
         return {asyncio.create_task(coro): i for i, coro in islice(it, n)}
 
-    it: Iterator[Tuple[int, Coroutine]] = enumerate(coros)
+    it: Iterator[tuple[int, Coroutine]] = enumerate(coros)
     tasks = create_taskset(batch_size)
-    results: Dict[int, Any] = {}
+    results: dict[int, Any] = {}
     while tasks:
         done, pending = await asyncio.wait(
             tasks.keys(), timeout=timeout, return_when=asyncio.FIRST_COMPLETED

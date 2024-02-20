@@ -1,12 +1,12 @@
-from typing import TYPE_CHECKING, Optional, Set
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .db import ObjectDB
 
 
 def transfer(
-    src: "ObjectDB", dest: "ObjectDB", oids: Set["str"], jobs: Optional[int] = None
-) -> Set["str"]:
+    src: "ObjectDB", dest: "ObjectDB", oids: set["str"], jobs: Optional[int] = None
+) -> set["str"]:
     src_exists = set(src.oids_exist(oids, jobs=jobs))
     src_missing = oids - src_exists
 
