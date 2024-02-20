@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Iterator, Type
+from collections.abc import Iterator, Mapping
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from . import generic  # noqa: F401
@@ -83,7 +83,7 @@ class Registry(Mapping):
     def __init__(self, reg) -> None:
         self._registry = reg
 
-    def __getitem__(self, key: str) -> Type["FileSystem"]:
+    def __getitem__(self, key: str) -> type["FileSystem"]:
         entry = self._registry.get(key) or self._registry[Schemes.LOCAL]
         try:
             return _import_class(entry["class"])

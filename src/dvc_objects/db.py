@@ -1,5 +1,6 @@
 import itertools
 import logging
+from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from functools import partial
 from io import BytesIO
@@ -7,11 +8,7 @@ from typing import (
     TYPE_CHECKING,
     BinaryIO,
     Callable,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
     Union,
     cast,
 )
@@ -139,9 +136,9 @@ class ObjectDB:
 
     def add(
         self,
-        path: Union["AnyFSPath", List["AnyFSPath"]],
+        path: Union["AnyFSPath", list["AnyFSPath"]],
         fs: "FileSystem",
-        oid: Union[str, List[str]],
+        oid: Union[str, list[str]],
         hardlink: bool = False,
         callback: "Callback" = DEFAULT_CALLBACK,
         check_exists: bool = True,
@@ -206,7 +203,7 @@ class ObjectDB:
         for oid in self.all():
             self.delete(oid)
 
-    def _oid_parts(self, oid: str) -> Tuple[str, str]:
+    def _oid_parts(self, oid: str) -> tuple[str, str]:
         return oid[:2], oid[2:]
 
     def oid_to_path(self, oid) -> str:
@@ -218,7 +215,7 @@ class ObjectDB:
         jobs: Optional[int] = None,
     ) -> Iterator[str]:
         if prefixes:
-            paths: Union[str, List[str]] = list(map(self.oid_to_path, prefixes))
+            paths: Union[str, list[str]] = list(map(self.oid_to_path, prefixes))
             if len(paths) == 1:
                 paths = paths[0]
             prefix = True

@@ -5,10 +5,11 @@ import shutil
 import stat
 import sys
 import threading
+from collections.abc import Collection, Iterator
 from concurrent import futures
 from contextlib import contextmanager, suppress
 from secrets import token_urlsafe
-from typing import TYPE_CHECKING, Any, Collection, Dict, Iterator, Optional, Set, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from fsspec.callbacks import DEFAULT_CALLBACK
 
@@ -207,7 +208,7 @@ def exists(
     file_paths: Union["AnyFSPath", Collection["AnyFSPath"]],
     callback: "Callback" = DEFAULT_CALLBACK,
     batch_size: Optional[int] = None,
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     """Return batched fs.exists results.
 
     Runs batched fs.exists() calls in parallel with fs.ls() until all paths
@@ -221,7 +222,7 @@ def exists(
         return {path: fs.exists(path)}
 
     paths_lock = threading.Lock()
-    results: Dict[str, bool] = {}
+    results: dict[str, bool] = {}
     results_lock = threading.Lock()
     callback.set_size(len(paths))
     jobs = batch_size or fs.jobs
@@ -260,9 +261,9 @@ def exists(
 
 def _exist_query(
     fs: "FileSystem",
-    paths: Set["AnyFSPath"],
+    paths: set["AnyFSPath"],
     paths_lock: threading.Lock,
-    results: Dict[str, bool],
+    results: dict[str, bool],
     results_lock: threading.Lock,
     batch_size: int,
     callback: "Callback",
@@ -282,9 +283,9 @@ def _exist_query(
 
 def _list_query(
     fs: "FileSystem",
-    paths: Set["AnyFSPath"],
+    paths: set["AnyFSPath"],
     paths_lock: threading.Lock,
-    results: Dict[str, bool],
+    results: dict[str, bool],
     results_lock: threading.Lock,
     callback: "Callback",
 ):
@@ -294,7 +295,7 @@ def _list_query(
         with paths_lock:
             if not paths:
                 return
-        kwargs: Dict[str, Any] = {}
+        kwargs: dict[str, Any] = {}
         if fs.version_aware:
             kwargs["versions"] = True
         contents = fs.ls(parent, **kwargs)

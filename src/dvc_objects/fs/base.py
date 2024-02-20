@@ -5,6 +5,7 @@ import ntpath
 import os
 import posixpath
 import shutil
+from collections.abc import Iterable, Iterator, Sequence
 from functools import partial
 from multiprocessing import cpu_count
 from typing import (
@@ -12,14 +13,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
     Literal,
     Optional,
-    Sequence,
-    Tuple,
     Union,
     overload,
 )
@@ -49,7 +44,7 @@ AnyFSPath = str
 
 # An info() entry, might evolve to a TypedDict
 # in the future (e.g for properly type 'size' etc).
-Entry = Dict[str, Any]
+Entry = dict[str, Any]
 
 
 class LinkError(OSError):
@@ -68,7 +63,7 @@ class FileSystem:
 
     flavour = posixpath
     protocol = "base"
-    REQUIRES: ClassVar[Dict[str, str]] = {}
+    REQUIRES: ClassVar[dict[str, str]] = {}
     _JOBS = 4 * cpu_count()
 
     HASH_JOBS = max(1, min(4, cpu_count() // 2))
@@ -90,13 +85,13 @@ class FileSystem:
             self.fs = fs
 
     @cached_property
-    def fs_args(self) -> Dict[str, Any]:
+    def fs_args(self) -> dict[str, Any]:
         ret = {"skip_instance_cache": True}
         ret.update(self._prepare_credentials(**self._config))
         return ret
 
     @property
-    def config(self) -> Dict[str, Any]:
+    def config(self) -> dict[str, Any]:
         return self._config
 
     @property
@@ -114,11 +109,11 @@ class FileSystem:
         return cls.flavour.join(*parts)
 
     @classmethod
-    def split(cls, path: str) -> Tuple[str, str]:
+    def split(cls, path: str) -> tuple[str, str]:
         return cls.flavour.split(path)
 
     @classmethod
-    def splitext(cls, path: str) -> Tuple[str, str]:
+    def splitext(cls, path: str) -> tuple[str, str]:
         return cls.flavour.splitext(path)
 
     def normpath(self, path: str) -> str:
@@ -147,7 +142,7 @@ class FileSystem:
         return cls.flavour.commonpath(list(paths))
 
     @classmethod
-    def parts(cls, path: str) -> Tuple[str, ...]:
+    def parts(cls, path: str) -> tuple[str, ...]:
         drive, path = cls.flavour.splitdrive(path.rstrip(cls.flavour.sep))
 
         ret = []
@@ -229,7 +224,7 @@ class FileSystem:
             start = "."
         return self.flavour.relpath(self.abspath(path), start=self.abspath(start))
 
-    def relparts(self, path: str, start: Optional[str] = None) -> Tuple[str, ...]:
+    def relparts(self, path: str, start: Optional[str] = None) -> tuple[str, ...]:
         return self.parts(self.relpath(path, start=start))
 
     @classmethod
@@ -252,7 +247,7 @@ class FileSystem:
         return self._config.get("version_aware", False)
 
     @staticmethod
-    def _get_kwargs_from_urls(urlpath: str) -> "Dict[str, Any]":
+    def _get_kwargs_from_urls(urlpath: str) -> "dict[str, Any]":
         from fsspec.utils import infer_storage_options
 
         options = infer_storage_options(urlpath)
@@ -262,14 +257,14 @@ class FileSystem:
 
     def _prepare_credentials(
         self,
-        **config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        **config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Prepare the arguments for authentication to the
         host filesystem"""
         return {}
 
     @classmethod
-    def get_missing_deps(cls) -> List[str]:
+    def get_missing_deps(cls) -> list[str]:
         from importlib.util import find_spec
 
         return [pkg for pkg, mod in cls.REQUIRES.items() if not find_spec(mod)]
@@ -339,21 +334,21 @@ class FileSystem:
 
     def cat(
         self,
-        path: Union[AnyFSPath, List[AnyFSPath]],
+        path: Union[AnyFSPath, list[AnyFSPath]],
         recursive: bool = False,
         on_error: Literal["raise", "omit", "return"] = "raise",
         **kwargs: Any,
-    ) -> Union[bytes, Dict[AnyFSPath, bytes]]:
+    ) -> Union[bytes, dict[AnyFSPath, bytes]]:
         return self.fs.cat(path, recursive=recursive, on_error=on_error, **kwargs)
 
     def cat_ranges(
         self,
-        paths: List[AnyFSPath],
-        starts: List[int],
-        ends: List[int],
+        paths: list[AnyFSPath],
+        starts: list[int],
+        ends: list[int],
         max_gap: Optional[int] = None,
         **kwargs,
-    ) -> List[bytes]:
+    ) -> list[bytes]:
         return self.fs.cat_ranges(paths, starts, ends, max_gap=max_gap, **kwargs)
 
     def cat_file(
@@ -409,7 +404,7 @@ class FileSystem:
 
     def pipe(
         self,
-        path: Union[AnyFSPath, Dict[AnyFSPath, bytes]],
+        path: Union[AnyFSPath, dict[AnyFSPath, bytes]],
         value: Optional[bytes] = None,
         **kwargs: Any,
     ) -> None:
@@ -440,18 +435,18 @@ class FileSystem:
     @overload
     def exists(
         self,
-        path: List[AnyFSPath],
+        path: list[AnyFSPath],
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
-    ) -> List[bool]:
+    ) -> list[bool]:
         ...
 
     def exists(
         self,
-        path: Union[AnyFSPath, List[AnyFSPath]],
+        path: Union[AnyFSPath, list[AnyFSPath]],
         callback: fsspec.Callback = DEFAULT_CALLBACK,
         batch_size: Optional[int] = None,
-    ) -> Union[bool, List[bool]]:
+    ) -> Union[bool, list[bool]]:
         if isinstance(path, str):
             return self.fs.exists(path)
         callback.set_size(len(path))
@@ -525,7 +520,7 @@ class FileSystem:
 
     def find(
         self,
-        path: Union[AnyFSPath, List[AnyFSPath]],
+        path: Union[AnyFSPath, list[AnyFSPath]],
         prefix: bool = False,
         batch_size: Optional[int] = None,
         **kwargs,
@@ -565,7 +560,7 @@ class FileSystem:
 
     def rm(
         self,
-        path: Union[AnyFSPath, List[AnyFSPath]],
+        path: Union[AnyFSPath, list[AnyFSPath]],
         recursive: bool = False,
         **kwargs,
     ) -> None:
@@ -586,10 +581,10 @@ class FileSystem:
     @overload
     def info(
         self,
-        path: List[AnyFSPath],
+        path: list[AnyFSPath],
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
-    ) -> List["Entry"]:
+    ) -> list["Entry"]:
         ...
 
     def info(self, path, callback=DEFAULT_CALLBACK, batch_size=None, **kwargs):
@@ -667,7 +662,7 @@ class FileSystem:
     def size(self, path: AnyFSPath) -> Optional[int]:
         return self.fs.size(path)
 
-    def sizes(self, paths: List[AnyFSPath]) -> List[Optional[int]]:
+    def sizes(self, paths: list[AnyFSPath]) -> list[Optional[int]]:
         return self.fs.sizes(paths)
 
     def du(
@@ -676,13 +671,13 @@ class FileSystem:
         total: bool = True,
         maxdepth: Optional[int] = None,
         **kwargs: Any,
-    ) -> Union[int, Dict[AnyFSPath, int]]:
+    ) -> Union[int, dict[AnyFSPath, int]]:
         return self.fs.du(path, total=total, maxdepth=maxdepth, **kwargs)
 
     def put(
         self,
-        from_info: Union[AnyFSPath, List[AnyFSPath]],
-        to_info: Union[AnyFSPath, List[AnyFSPath]],
+        from_info: Union[AnyFSPath, list[AnyFSPath]],
+        to_info: Union[AnyFSPath, list[AnyFSPath]],
         callback: fsspec.Callback = DEFAULT_CALLBACK,
         recursive: bool = False,
         batch_size: Optional[int] = None,
@@ -714,8 +709,8 @@ class FileSystem:
 
     def get(
         self,
-        from_info: Union[AnyFSPath, List[AnyFSPath]],
-        to_info: Union[AnyFSPath, List[AnyFSPath]],
+        from_info: Union[AnyFSPath, list[AnyFSPath]],
+        to_info: Union[AnyFSPath, list[AnyFSPath]],
         callback: fsspec.Callback = DEFAULT_CALLBACK,
         recursive: bool = False,
         batch_size: Optional[int] = None,
@@ -730,8 +725,8 @@ class FileSystem:
                 self.fs.get_file(rpath, lpath, callback=child, **kwargs)
 
         if isinstance(from_info, list) and isinstance(to_info, list):
-            from_infos: List[AnyFSPath] = from_info
-            to_infos: List[AnyFSPath] = to_info
+            from_infos: list[AnyFSPath] = from_info
+            to_infos: list[AnyFSPath] = to_info
         else:
             assert isinstance(from_info, str)
             assert isinstance(to_info, str)
@@ -797,7 +792,7 @@ class ObjectFileSystem(FileSystem):
 
     def find(
         self,
-        path: Union[AnyFSPath, List[AnyFSPath]],
+        path: Union[AnyFSPath, list[AnyFSPath]],
         prefix: bool = False,
         batch_size: Optional[int] = None,
         **kwargs,
@@ -807,7 +802,7 @@ class ObjectFileSystem(FileSystem):
         else:
             paths = path
 
-        def _make_args(paths: List[AnyFSPath]) -> Iterator[Tuple[str, str]]:
+        def _make_args(paths: list[AnyFSPath]) -> Iterator[tuple[str, str]]:
             for path in paths:
                 if prefix and not path.endswith(self.flavour.sep):
                     parent = self.parent(path)

@@ -4,7 +4,7 @@ import logging
 import os
 from contextlib import suppress
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from fsspec.asyn import get_loop
 from fsspec.callbacks import DEFAULT_CALLBACK
@@ -68,9 +68,9 @@ def _link(
 
 def copy(
     from_fs: "FileSystem",
-    from_path: Union["AnyFSPath", List["AnyFSPath"]],
+    from_path: Union["AnyFSPath", list["AnyFSPath"]],
     to_fs: "FileSystem",
-    to_path: Union["AnyFSPath", List["AnyFSPath"]],
+    to_path: Union["AnyFSPath", list["AnyFSPath"]],
     callback: "Callback" = DEFAULT_CALLBACK,
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
@@ -133,9 +133,9 @@ def copy(
 
 
 def _put(  # noqa: C901
-    from_paths: List["AnyFSPath"],
+    from_paths: list["AnyFSPath"],
     to_fs: "FileSystem",
-    to_paths: List["AnyFSPath"],
+    to_paths: list["AnyFSPath"],
     callback: "Callback" = DEFAULT_CALLBACK,
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
@@ -199,8 +199,8 @@ def _put(  # noqa: C901
 
 def _get(  # noqa: C901
     from_fs: "FileSystem",
-    from_paths: List["AnyFSPath"],
-    to_paths: List["AnyFSPath"],
+    from_paths: list["AnyFSPath"],
+    to_paths: list["AnyFSPath"],
     callback: "Callback" = DEFAULT_CALLBACK,
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
@@ -265,7 +265,7 @@ def _get(  # noqa: C901
 
 
 def _try_links(
-    links: List["str"],
+    links: list["str"],
     from_fs: "FileSystem",
     from_path: "AnyFSPath",
     to_fs: "FileSystem",
@@ -310,11 +310,11 @@ def _try_links(
 
 def transfer(  # noqa: PLR0912, C901
     from_fs: "FileSystem",
-    from_path: Union["AnyFSPath", List["AnyFSPath"]],
+    from_path: Union["AnyFSPath", list["AnyFSPath"]],
     to_fs: "FileSystem",
-    to_path: Union["AnyFSPath", List["AnyFSPath"]],
+    to_path: Union["AnyFSPath", list["AnyFSPath"]],
     hardlink: bool = False,
-    links: Optional[List["str"]] = None,
+    links: Optional[list["str"]] = None,
     callback: "Callback" = DEFAULT_CALLBACK,
     batch_size: Optional[int] = None,
     on_error: Optional[TransferErrorHandler] = None,
@@ -405,12 +405,12 @@ def _test_link(
 
 
 def test_links(
-    links: List["str"],
+    links: list["str"],
     from_fs: "FileSystem",
     from_path: "AnyFSPath",
     to_fs: "FileSystem",
     to_path: "AnyFSPath",
-) -> List["AnyFSPath"]:
+) -> list["AnyFSPath"]:
     from .utils import tmp_fname
 
     from_file = from_fs.join(from_path, tmp_fname())
