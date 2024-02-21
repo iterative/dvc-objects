@@ -1,4 +1,5 @@
 """Manages progress bars."""
+import warnings
 import logging
 import os
 import re
@@ -89,57 +90,69 @@ class Tqdm(tqdm):
             and hasattr(file, "isatty")
         ):
             disable = not file.isatty()
-        super().__init__(
-            iterable=iterable,
-            disable=disable,
-            leave=leave,
-            desc=desc,
-            bar_format="!",
-            lock_args=(False,),
-            total=total,
-            **kwargs,
-        )
-        self.postfix = postfix or {"info": ""}
-        if bar_format is None:
-            if self.__len__():
-                self.bar_format = (
-                    self.BAR_FMT_DEFAULT_NESTED if self.pos else self.BAR_FMT_DEFAULT
-                )
+        try:
+            super().__init__(
+                iterable=iterable,
+                disable=disable,
+                leave=leave,
+                desc=desc,
+                bar_format="!",
+                lock_args=(False,),
+                total=total,
+                **kwargs,
+            )
+            self.postfix = postfix or {"info": ""}
+            if bar_format is None:
+                if self.__len__():
+                    self.bar_format = (
+                        self.BAR_FMT_DEFAULT_NESTED if self.pos else self.BAR_FMT_DEFAULT
+                    )
+                else:
+                    self.bar_format = self.BAR_FMT_NOTOTAL
             else:
-                self.bar_format = self.BAR_FMT_NOTOTAL
-        else:
-            self.bar_format = bar_format
-        self.refresh()
-
+                self.bar_format = bar_format
+            self.refresh()
+        except TypeError:
+            warnings.warn("Catched TypeError, tqdm does`t work properly. dvc/issues/8642", UserWarning)
     def update_to(self, current, total=None):
-        if total:
-            self.total = total
-        self.update(current - self.n)
+        try:
+            if total:
+                self.total = total
+            self.update(current - self.n)
+        except (AttributeError, TypeError) as e:
+            warnings.warn(f"Catched {e}, tqdm does`t work properly. dvc/issues/8642", UserWarning)
 
     def close(self):
-        self.postfix["info"] = ""
-        # remove ETA (either unknown or zero); remove completed bar
-        self.bar_format = self.bar_format.replace("<{remaining}", "").replace(
-            "|{bar:10}|", " "
-        )
-        super().close()
+        try:
+            self.postfix["info"] = ""
+            # remove ETA (either unknown or zero); remove completed bar
+            self.bar_format = self.bar_format.replace("<{remaining}", "").replace(
+                "|{bar:10}|", " "
+            )
+            super().close()
+        except (AttributeError, TypeError) as e:
+            warnings.warn(f"Catched {e}, tqdm does`t work properly. dvc/issues/8642", UserWarning)
 
     @property
     def format_dict(self):
-        """inject `ncols_desc` to fill the display width (`ncols`)"""
-        d = super().format_dict
-        ncols = d["ncols"] or 80
-        # assumes `bar_format` has max one of ("ncols_desc" & "ncols_info")
-
-        meter = self.format_meter(  # type: ignore[call-arg]
-            ncols_desc=1, ncols_info=1, **d
-        )
-        ncols_left = ncols - len(meter) + 1
-        ncols_left = max(ncols_left, 0)
-        if ncols_left:
-            d["ncols_desc"] = d["ncols_info"] = ncols_left
-        else:
-            # work-around for zero-width description
-            d["ncols_desc"] = d["ncols_info"] = 1
-            d["prefix"] = ""
-        return d
+        try:
+            """inject `ncols_desc` to fill the display width (`ncols`)"""
+            d = super().format_dict
+            ncols = d["ncols"] or 80
+            # assumes `bar_format` has max one of ("ncols_desc" & "ncols_info")
+    
+            meter = self.format_meter(  # type: ignore[call-arg]
+                ncols_desc=1, ncols_info=1, **d
+            )
+            ncols_left = ncols - len(meter) + 1
+            ncols_left = max(ncols_left, 0)
+            if ncols_left:
+                d["ncols_desc"] = d["ncols_info"] = ncols_left
+            else:
+                # work-around for zero-width description
+                d["ncols_desc"] = d["ncols_info"] = 1
+                d["prefix"] = ""
+            return d
+        except TypeError:
+            warnings.warn("Catched TypeError, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+ 
