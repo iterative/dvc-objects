@@ -114,6 +114,7 @@ class Tqdm(tqdm):
             self.refresh()
         except TypeError:
             warnings.warn("Catched TypeError, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+
     def update_to(self, current, total=None):
         try:
             if total:
