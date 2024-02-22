@@ -1,9 +1,9 @@
 """Manages progress bars."""
-import warnings
 import logging
 import os
 import re
 import sys
+from warnings import warn
 from threading import RLock
 from typing import Any, ClassVar, Dict
 
@@ -104,16 +104,19 @@ class Tqdm(tqdm):
             self.postfix = postfix or {"info": ""}
             if bar_format is None:
                 if self.__len__():
-                    self.bar_format = (
-                        self.BAR_FMT_DEFAULT_NESTED if self.pos else self.BAR_FMT_DEFAULT
-                    )
+                    self.bar_format = self.BAR_FMT_DEFAULT
+                    if self.pos:
+                        self.bar_format = self.BAR_FMT_DEFAULT_NESTED
                 else:
                     self.bar_format = self.BAR_FMT_NOTOTAL
             else:
                 self.bar_format = bar_format
             self.refresh()
         except TypeError:
-            warnings.warn("Catched TypeError, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+            warn(
+                "Catched TypeError, tqdm does`t work properly. dvc/issues/8642",
+                UserWarning,
+            )
 
     def update_to(self, current, total=None):
         try:
@@ -121,7 +124,10 @@ class Tqdm(tqdm):
                 self.total = total
             self.update(current - self.n)
         except (AttributeError, TypeError) as e:
-            warnings.warn(f"Catched {e}, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+            warn(
+                f"Catched {e}, tqdm does`t work properly. dvc/issues/8642",
+                UserWarning,
+            )
 
     def close(self):
         try:
@@ -132,7 +138,10 @@ class Tqdm(tqdm):
             )
             super().close()
         except (AttributeError, TypeError) as e:
-            warnings.warn(f"Catched {e}, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+            warn(
+                f"Catched {e}, tqdm does`t work properly. dvc/issues/8642",
+                UserWarning,
+            )
 
     @property
     def format_dict(self):
@@ -155,5 +164,8 @@ class Tqdm(tqdm):
                 d["prefix"] = ""
             return d
         except TypeError:
-            warnings.warn("Catched TypeError, tqdm does`t work properly. dvc/issues/8642", UserWarning)
+            warn(
+                "Catched TypeError, tqdm does`t work properly. dvc/issues/8642",
+                UserWarning,
+            )
  
