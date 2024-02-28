@@ -127,7 +127,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             self.rm_file(tmp_info)
             raise
 
-    def open(self, path, mode="r", encoding=None, **kwargs):  # noqa: A003
+    def open(self, path, mode="r", encoding=None, **kwargs):
         return open(path, mode=mode, encoding=encoding)  # noqa: SIM115
 
     def symlink(self, path1, path2):

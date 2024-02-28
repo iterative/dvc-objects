@@ -296,7 +296,7 @@ class FileSystem:
         return entry["size"] == 0
 
     @overload
-    def open(  # noqa: A003
+    def open(
         self,
         path: AnyFSPath,
         mode: Literal["rb", "br", "wb"],
@@ -305,7 +305,7 @@ class FileSystem:
         return self.open(path, mode, **kwargs)
 
     @overload
-    def open(  # noqa: A003
+    def open(
         self,
         path: AnyFSPath,
         mode: Literal["r", "rt", "w"] = "r",
@@ -313,7 +313,7 @@ class FileSystem:
     ) -> "TextIO":
         ...
 
-    def open(  # noqa: A003
+    def open(
         self,
         path: AnyFSPath,
         mode: str = "r",

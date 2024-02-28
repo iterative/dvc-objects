@@ -259,14 +259,11 @@ class ObjectDB:
         prefixes: Optional[Iterable[str]] = None,
         jobs: Optional[int] = None,
     ) -> Iterator[str]:
-        count = 0
-        for oid in self._list_oids(prefixes=prefixes, jobs=jobs):
+        for i, oid in enumerate(self._list_oids(prefixes=prefixes, jobs=jobs), start=1):
             yield oid
-            count += 1
-            if count > limit:
+            if i > limit:
                 logger.debug(
-                    "`_list_oids()` returned max %r oids, "
-                    "skipping remaining results",
+                    "`_list_oids()` returned max %r oids, skipping remaining results",
                     limit,
                 )
                 return
@@ -348,7 +345,7 @@ class ObjectDB:
 
         yield from self._list_oids(prefixes=traverse_prefixes, jobs=jobs)
 
-    def all(self, jobs=None):  # noqa: A003
+    def all(self, jobs=None):
         """Iterate over all oids in this fs.
 
         Hashes will be fetched in parallel threads according to prefix
