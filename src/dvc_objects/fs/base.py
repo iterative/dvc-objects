@@ -310,8 +310,7 @@ class FileSystem:
         path: AnyFSPath,
         mode: Literal["r", "rt", "w"] = "r",
         **kwargs: Any,
-    ) -> "TextIO":
-        ...
+    ) -> "TextIO": ...
 
     def open(
         self,
@@ -429,8 +428,7 @@ class FileSystem:
         path: AnyFSPath,
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
     @overload
     def exists(
@@ -438,8 +436,7 @@ class FileSystem:
         path: list[AnyFSPath],
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
-    ) -> list[bool]:
-        ...
+    ) -> list[bool]: ...
 
     def exists(
         self,
@@ -508,12 +505,14 @@ class FileSystem:
         return not (self.is_symlink(path) or self.is_hardlink(path))
 
     @overload
-    def ls(self, path: AnyFSPath, detail: Literal[True], **kwargs) -> "Iterator[Entry]":
-        ...
+    def ls(
+        self, path: AnyFSPath, detail: Literal[True], **kwargs
+    ) -> "Iterator[Entry]": ...
 
     @overload
-    def ls(self, path: AnyFSPath, detail: Literal[False], **kwargs) -> Iterator[str]:
-        ...
+    def ls(
+        self, path: AnyFSPath, detail: Literal[False], **kwargs
+    ) -> Iterator[str]: ...
 
     def ls(self, path, detail=False, **kwargs):
         return self.fs.ls(path, detail=detail, **kwargs)
@@ -575,8 +574,7 @@ class FileSystem:
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
         **kwargs,
-    ) -> "Entry":
-        ...
+    ) -> "Entry": ...
 
     @overload
     def info(
@@ -584,8 +582,7 @@ class FileSystem:
         path: list[AnyFSPath],
         callback: fsspec.Callback = ...,
         batch_size: Optional[int] = ...,
-    ) -> list["Entry"]:
-        ...
+    ) -> list["Entry"]: ...
 
     def info(self, path, callback=DEFAULT_CALLBACK, batch_size=None, **kwargs):
         if isinstance(path, str):
