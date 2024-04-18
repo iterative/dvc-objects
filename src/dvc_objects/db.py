@@ -433,6 +433,7 @@ class ObjectDB:
             traverse_weight = traverse_pages * self.fs.TRAVERSE_WEIGHT_MULTIPLIER
         else:
             traverse_weight = traverse_pages
+        traverse_weight *= self.fs.EXTRA_TRAVERSE_WEIGHT_MULTIPLIER
         if len(oids) < traverse_weight and not always_traverse:
             logger.debug(
                 "Large remote (%r oids < %r traverse weight), "
