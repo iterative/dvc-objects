@@ -24,7 +24,7 @@ jobs:
         pyv: ['3.9', '3.10', '3.11', '3.12']
         include:
         - {os: ubuntu-latest, pyv: 'pypy3.9'}
-        - {os: macos-14, pyv: '3.12'}
+        - {os: ubuntu-latest, pyv: '3.13'}
 
     steps:
     - name: Check out the repository
@@ -38,6 +38,7 @@ jobs:
         python-version: ${{ matrix.pyv }}
         cache: pip
         cache-dependency-path: setup.cfg
+        allow-prereleases: true
 
     - name: Upgrade pip and nox
       run: |
