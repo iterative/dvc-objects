@@ -86,7 +86,7 @@ async def batch_coros(  # noqa: C901
         for fut in done:
             try:
                 result = fut.result()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 if not return_exceptions:
                     for pending_fut in pending:
                         pending_fut.cancel()

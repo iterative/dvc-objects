@@ -116,7 +116,7 @@ def copy(
                     return to_fs.put_file(
                         fobj, to_p, size=size, callback=child, **put_file_kwargs
                     )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             if on_error is not None:
                 on_error(from_p, to_p, exc)
             else:
@@ -151,7 +151,7 @@ def _put(  # noqa: C901
                 return to_fs.put_file(
                     from_path, to_path, callback=child, **put_file_kwargs
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             if on_error is not None:
                 on_error(from_path, to_path, exc)
             else:
@@ -217,7 +217,7 @@ def _get(  # noqa: C901
                     return from_fs.get_file(
                         from_path, tmp_file, callback=child, **get_file_kwargs
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 if on_error is not None:
                     on_error(from_path, to_path, exc)
                 else:
@@ -375,7 +375,7 @@ def transfer(  # noqa: PLR0912, C901
                 on_error(from_p, to_p, exc)
             else:
                 raise
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             if on_error is not None:
                 on_error(from_p, to_p, exc)
             else:

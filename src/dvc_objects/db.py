@@ -123,7 +123,7 @@ class ObjectDB:
             raise ObjectDBPermissionError("Cannot add to read-only ODB")
 
         if isinstance(data, bytes):
-            fobj: "BinaryIO" = BytesIO(data)
+            fobj: BinaryIO = BytesIO(data)
             size: Optional[int] = len(data)
         else:
             fobj = data
