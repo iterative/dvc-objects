@@ -101,6 +101,7 @@ module = [
 
 [tool.codespell]
 ignore-words-list = "cachable,"
+skip = "CODE_OF_CONDUCT.rst"
 
 [tool.ruff]
 output-format = "full"
