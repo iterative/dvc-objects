@@ -44,9 +44,9 @@ def paths(original, links):
 
 def test_link(benchmark, paths, links, link):
     def setup():
-        for link in links.iterdir():
-            if link.is_file():
-                link.unlink()
+        for lnk in links.iterdir():
+            if lnk.is_file():
+                lnk.unlink()
 
     def _link(paths):
         for src, path in paths:
