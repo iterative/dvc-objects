@@ -20,11 +20,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-latest, macos-latest]
-        pyv: ['3.9', '3.10', '3.11', '3.12']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        pyv: ['3.9', '3.10', '3.11', '3.12', '3.13']
         include:
         - {os: ubuntu-latest, pyv: 'pypy3.9'}
-        - {os: macos-14, pyv: '3.12'}
 
     steps:
     - name: Check out the repository
@@ -37,7 +36,8 @@ jobs:
       with:
         python-version: ${{ matrix.pyv }}
         cache: pip
-        cache-dependency-path: setup.cfg
+        allow-prereleases: true
+        cache-dependency-path: pyproject.toml
 
     - name: Upgrade pip and nox
       run: |
