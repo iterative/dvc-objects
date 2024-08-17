@@ -42,7 +42,7 @@ tests = [
 ]
 dev = [
     "dvc-objects[tests]",
-    "mypy==1.10.1",
+    "mypy==1.11.1",
 ]
 
 [tool.setuptools.packages.find]
