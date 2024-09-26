@@ -73,14 +73,8 @@ def _clonefile():
 
 # NOTE: reflink may (macos) or may not (linux) clone permissions,
 # so the user needs to handle those himself.
-if sys.platform == "darwin" and (clonefile := _clonefile()):
-
-    def reflink(src, dst):
-        clonefile(
-            ctypes.c_char_p(os.fsencode(src)),
-            ctypes.c_char_p(os.fsencode(dst)),
-            ctypes.c_int(0),
-        )
+if sys.platform == "darwin":
+    from reflink_copy import reflink
 
 elif sys.platform == "linux":
     import fcntl

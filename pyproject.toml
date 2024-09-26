@@ -24,6 +24,7 @@ dynamic = ["version"]
 dependencies = [
     "fsspec>=2024.2.0",
     "funcy>=1.14; python_version < '3.12'",
+    "reflink-copy",
 ]
 
 [project.urls]
