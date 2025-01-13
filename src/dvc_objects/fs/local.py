@@ -128,7 +128,7 @@ class FsspecLocalFileSystem(fsspec.AbstractFileSystem):
             raise
 
     def open(self, path, mode="r", encoding=None, **kwargs):
-        return open(path, mode=mode, encoding=encoding)  # noqa: SIM115
+        return open(path, mode=mode, encoding=encoding)
 
     def symlink(self, path1, path2):
         return self.fs.symlink(path1, path2)
