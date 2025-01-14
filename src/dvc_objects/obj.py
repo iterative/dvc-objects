@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 
 
 class Object:
-    __slots__ = ("path", "fs", "oid")
+    __slots__ = ("fs", "oid", "path")
 
     def __init__(
         self,
