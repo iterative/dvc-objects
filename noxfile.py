@@ -13,7 +13,7 @@ pip_dev_flags = ["--use-pep517"]  # reflink package is still missing wheels
 
 
 @nox.session(
-    python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "pypy3.8", "pypy3.9"]
+    python=["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.8", "pypy3.9"]
 )
 def tests(session: nox.Session) -> None:
     session.install(".[tests]", *pip_dev_flags)
