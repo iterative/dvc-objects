@@ -22,4 +22,4 @@ class CallbackStream:
 
 
 def wrap_file(file, callback: "fsspec.Callback") -> BinaryIO:
-    return cast(BinaryIO, CallbackStream(file, callback))
+    return cast("BinaryIO", CallbackStream(file, callback))
