@@ -37,7 +37,7 @@ tests = [
     "pytest-cov>=4.1.0",
     "pytest-mock",
     "pytest-benchmark",
-    "pytest-asyncio>=0.23.2,<1",
+    "pytest-asyncio>=0.23.2,<2",
     "reflink",
 ]
 dev = [
