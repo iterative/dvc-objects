@@ -12,7 +12,15 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+has_link = hasattr(os, "link")
+
+
 def hardlink(source: "AnyFSPath", link_name: "AnyFSPath") -> None:
+    if not has_link:
+        # some Python ports (eg: Termux) don't have os.link()
+        # see: https://github.com/iterative/dvc/issues/10875
+        raise OSError(errno.ENOTSUP, "hardlink is not supported")
+
     # NOTE: we should really be using `os.link()` here with
     # `follow_symlinks=True`, but unfortunately the implementation is
     # buggy across platforms, so until it is fixed, we just dereference
